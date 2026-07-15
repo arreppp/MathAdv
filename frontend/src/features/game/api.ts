@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/client'
+import { supabase } from '@/shared/api/supabaseClient'
 
 export type QuestionType = 'multiple_choice' | 'fill_blank' | 'true_false' | 'matching' | 'drag_drop'
 export type Difficulty = 'easy' | 'medium' | 'hard'
@@ -44,21 +44,27 @@ export interface AnswerResult {
 }
 
 export async function fetchLevels(): Promise<GameLevel[]> {
-  const { data } = await apiClient.get<{ levels: GameLevel[] }>('/levels')
-  return data.levels
+  const { data, error } = await supabase.rpc('list_levels')
+  if (error) throw error
+  return data as GameLevel[]
 }
 
 export async function fetchNextQuestion(levelId: number, excludeId?: number): Promise<Question> {
-  const { data } = await apiClient.get<{ question: Question }>(`/levels/${levelId}/questions/next`, {
-    params: excludeId ? { exclude: excludeId } : undefined,
+  const { data, error } = await supabase.rpc('next_question', {
+    p_level_id: levelId,
+    p_exclude: excludeId ?? null,
   })
-  return data.question
+  if (error) throw error
+  if (!data) throw new Error('No questions available for this level yet.')
+  return data as Question
 }
 
 export async function submitAnswer(levelId: number, questionId: number, answer: string): Promise<AnswerResult> {
-  const { data } = await apiClient.post<AnswerResult>(`/levels/${levelId}/answers`, {
-    question_id: questionId,
-    answer,
+  const { data, error } = await supabase.rpc('submit_answer', {
+    p_level_id: levelId,
+    p_question_id: questionId,
+    p_answer: answer,
   })
-  return data
+  if (error) throw error
+  return data as AnswerResult
 }

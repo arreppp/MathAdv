@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/client'
+import { supabase } from '@/shared/api/supabaseClient'
 
 export interface DailyRewardStatus {
   reward: { id: number; name: string; xp_value: number } | null
@@ -7,11 +7,13 @@ export interface DailyRewardStatus {
 }
 
 export async function fetchDailyReward(): Promise<DailyRewardStatus> {
-  const { data } = await apiClient.get<DailyRewardStatus>('/rewards/daily')
-  return data
+  const { data, error } = await supabase.rpc('daily_reward_status')
+  if (error) throw error
+  return data as DailyRewardStatus
 }
 
 export async function claimDailyReward(): Promise<{ message: string; xp_awarded: number }> {
-  const { data } = await apiClient.post<{ message: string; xp_awarded: number }>('/rewards/daily/claim')
-  return data
+  const { data, error } = await supabase.rpc('claim_daily_reward')
+  if (error) throw error
+  return data as { message: string; xp_awarded: number }
 }

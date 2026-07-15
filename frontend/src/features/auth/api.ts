@@ -1,31 +1,45 @@
-import { apiClient } from '@/shared/api/client'
+import { supabase } from '@/shared/api/supabaseClient'
 import type { User } from '@/shared/types'
 
-interface AuthResponse {
-  user: User
-  token: string
+export async function fetchMe(): Promise<User> {
+  const { data, error } = await supabase.rpc('me')
+  if (error) throw error
+  return data as User
 }
 
+/**
+ * Public registration always creates a student account - the on_auth_user_created
+ * trigger (supabase/migrations) provisions the matching public.users/students
+ * rows. Teacher/admin accounts are provisioned separately, same as before.
+ */
 export async function registerRequest(payload: {
   name: string
   email: string
   password: string
   password_confirmation: string
-}): Promise<AuthResponse> {
-  const { data } = await apiClient.post<AuthResponse>('/auth/register', payload)
-  return data
+}): Promise<User> {
+  if (payload.password !== payload.password_confirmation) {
+    throw new Error('Passwords do not match.')
+  }
+
+  const { error } = await supabase.auth.signUp({
+    email: payload.email,
+    password: payload.password,
+    options: { data: { name: payload.name } },
+  })
+  if (error) throw error
+
+  return fetchMe()
 }
 
-export async function loginRequest(payload: { email: string; password: string }): Promise<AuthResponse> {
-  const { data } = await apiClient.post<AuthResponse>('/auth/login', payload)
-  return data
+export async function loginRequest(payload: { email: string; password: string }): Promise<User> {
+  const { error } = await supabase.auth.signInWithPassword(payload)
+  if (error) throw error
+
+  return fetchMe()
 }
 
 export async function logoutRequest(): Promise<void> {
-  await apiClient.post('/auth/logout')
-}
-
-export async function meRequest(): Promise<{ user: User }> {
-  const { data } = await apiClient.get<{ user: User }>('/auth/me')
-  return data
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
 }
