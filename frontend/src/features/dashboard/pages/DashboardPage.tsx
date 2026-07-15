@@ -70,6 +70,19 @@ export function DashboardPage() {
           >
             Play World 1
           </Link>
+
+          <div className="mt-4 flex justify-center gap-4 text-sm">
+            <Link to="/leaderboard" className="font-display font-semibold text-adventure-700 hover:underline">
+              Leaderboard
+            </Link>
+            <Link to="/achievements" className="font-display font-semibold text-adventure-700 hover:underline">
+              Achievements
+            </Link>
+            <Link to="/rewards" className="font-display font-semibold text-adventure-700 hover:underline">
+              Daily Reward
+            </Link>
+          </div>
+
           <Button
             variant="ghost"
             className="mt-3 block"
