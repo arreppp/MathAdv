@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { logoutRequest } from '@/features/auth/api'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { Button } from '@/shared/ui/Button'
@@ -23,9 +23,15 @@ export function DashboardPage() {
       <Card className="mx-auto max-w-lg text-center">
         <h1 className="font-display text-2xl font-extrabold text-adventure-700">Welcome back, {user?.name}!</h1>
         <p className="mt-2 text-adventure-700">Your adventure dashboard is being built.</p>
+        <Link
+          to="/play"
+          className="font-display mt-6 inline-block rounded-2xl bg-adventure-500 px-5 py-2.5 font-semibold text-white shadow-md shadow-adventure-900/20 transition-transform hover:bg-adventure-600 active:scale-95"
+        >
+          Play World 1
+        </Link>
         <Button
           variant="ghost"
-          className="mt-6"
+          className="mt-3 block"
           onClick={() => logoutMutation.mutate()}
           disabled={logoutMutation.isPending}
         >
