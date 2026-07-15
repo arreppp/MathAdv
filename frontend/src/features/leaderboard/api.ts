@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/client'
+import { supabase } from '@/shared/api/supabaseClient'
 
 export interface LeaderboardEntry {
   rank: number
@@ -9,6 +9,7 @@ export interface LeaderboardEntry {
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
-  const { data } = await apiClient.get<{ entries: LeaderboardEntry[] }>('/leaderboard')
-  return data.entries
+  const { data, error } = await supabase.rpc('leaderboard', { p_scope: 'global', p_class_id: null })
+  if (error) throw error
+  return (data as { entries: LeaderboardEntry[] }).entries
 }

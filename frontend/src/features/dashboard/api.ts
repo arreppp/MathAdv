@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/client'
+import { supabase } from '@/shared/api/supabaseClient'
 
 interface ActivityLogEntry {
   type: string
@@ -14,6 +14,7 @@ export interface DashboardSummary {
 }
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
-  const { data } = await apiClient.get<DashboardSummary>('/dashboard')
-  return data
+  const { data, error } = await supabase.rpc('dashboard_summary')
+  if (error) throw error
+  return data as DashboardSummary
 }

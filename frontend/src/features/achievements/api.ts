@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/client'
+import { supabase } from '@/shared/api/supabaseClient'
 
 export interface AchievementEntry {
   id: number
@@ -24,6 +24,7 @@ interface AchievementsResponse {
 }
 
 export async function fetchAchievements(): Promise<AchievementsResponse> {
-  const { data } = await apiClient.get<AchievementsResponse>('/achievements')
-  return data
+  const { data, error } = await supabase.rpc('list_achievements')
+  if (error) throw error
+  return data as AchievementsResponse
 }

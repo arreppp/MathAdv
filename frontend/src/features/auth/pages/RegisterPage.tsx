@@ -9,7 +9,7 @@ import { Card } from '@/shared/ui/Card'
 
 export function RegisterPage() {
   const navigate = useNavigate()
-  const setSession = useAuthStore((state) => state.setSession)
+  const setUser = useAuthStore((state) => state.setUser)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,8 +17,8 @@ export function RegisterPage() {
 
   const mutation = useMutation({
     mutationFn: registerRequest,
-    onSuccess: ({ user, token }) => {
-      setSession(user, token)
+    onSuccess: (user) => {
+      setUser(user)
       navigate('/dashboard')
     },
   })

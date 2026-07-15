@@ -8,14 +8,13 @@ interface ProtectedRouteProps extends PropsWithChildren {
 }
 
 export function ProtectedRoute({ requireRole, children }: ProtectedRouteProps) {
-  const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
 
-  if (!token || !user) {
+  if (!user) {
     return <Navigate to="/login" replace />
   }
 
-  if (requireRole && user.role?.name !== requireRole) {
+  if (requireRole && user.role !== requireRole) {
     return <Navigate to="/dashboard" replace />
   }
 

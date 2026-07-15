@@ -8,16 +8,12 @@ import { LoginPage } from './LoginPage'
 
 vi.mock('@/features/auth/api', () => ({
   loginRequest: vi.fn().mockResolvedValue({
-    user: {
-      id: 1,
-      name: 'Test Student',
-      email: 'test@example.com',
-      avatar: null,
-      role: { id: 1, name: 'student' },
-      student: { id: 1, user_id: 1, class_id: null, xp: 0, level: 1 },
-      teacher: null,
-    },
-    token: 'fake-token',
+    id: '11111111-1111-1111-1111-111111111111',
+    name: 'Test Student',
+    avatar: null,
+    role: 'student',
+    student: { id: 1, user_id: '11111111-1111-1111-1111-111111111111', class_id: null, xp: 0, level: 1 },
+    teacher: null,
   }),
 }))
 

@@ -9,14 +9,14 @@ import { Card } from '@/shared/ui/Card'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const setSession = useAuthStore((state) => state.setSession)
+  const setUser = useAuthStore((state) => state.setUser)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const mutation = useMutation({
     mutationFn: loginRequest,
-    onSuccess: ({ user, token }) => {
-      setSession(user, token)
+    onSuccess: (user) => {
+      setUser(user)
       navigate('/dashboard')
     },
   })
