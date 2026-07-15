@@ -24,7 +24,6 @@ see the module list below.
 MathAdv/
 ├── backend/     Laravel 11 API
 ├── frontend/    React 19 + TS + Vite + Tailwind + Phaser 3
-├── docker/      docker-compose.yml + Dockerfiles (deployment; optional for local dev)
 └── .github/     CI/CD workflows
 ```
 
@@ -40,13 +39,12 @@ MathAdv/
 | Teacher dashboard, class management, admin panel | Scaffolded only (placeholder UI) |
 | Worlds 2-4 (Multiplication/Division/Fractions) | Schema ready, no seeded levels/scenes yet |
 | Matching / Drag-and-drop question types | Schema ready, no playable UI yet |
-| Docker, CI/CD | Done (see below) |
+| CI/CD | Done (see below) |
 
 ## Local Development
 
-### Option A: Laragon (or any local PHP/MySQL/Node stack)
-
-This is the primary local dev flow used while building this project.
+Laragon (or any local PHP/MySQL/Node stack) is the primary local dev flow used while building this
+project.
 
 **Backend**
 
@@ -77,26 +75,6 @@ npm run dev                # http://localhost:5173
 ```sh
 cd backend && php artisan test
 cd frontend && npm run test
-```
-
-### Option B: Docker
-
-Docker Compose is provided for parity with the eventual deployment target, but hasn't been run
-in this environment (no Docker install available while building this repo) - review the compose
-file and Dockerfiles before relying on them, and file an issue if something doesn't build cleanly.
-
-```sh
-cd docker
-cp .env.example .env      # adjust DB credentials / VITE_API_URL if needed
-docker compose up -d --build
-```
-
-This starts `mysql`, `backend` (php-fpm), `nginx` (serving the Laravel app on
-`http://localhost:8000`), and `frontend` (static build served on `http://localhost:5173`). Run
-migrations/seeders once the containers are up:
-
-```sh
-docker compose exec backend php artisan migrate --seed
 ```
 
 ## CI/CD
