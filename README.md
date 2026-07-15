@@ -107,9 +107,12 @@ docker compose exec backend php artisan migrate --seed
 - `deploy-frontend.yml` - deploys `frontend/` to Vercel on push to `main`.
 - `deploy-backend.yml` - deploys `backend/` to the Hostinger VPS via SSH on push to `main`.
 
-The deploy workflows need repo secrets that aren't set up yet - see the workflow files for the
-exact names required. They'll simply fail until those secrets are added in GitHub repo Settings →
-Secrets, which is expected.
+The deploy workflows need repo secrets that aren't set up yet (GitHub repo Settings → Secrets and
+variables → Actions) - they'll simply fail until these are added, which is expected:
+
+- **`deploy-frontend.yml`**: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+- **`deploy-backend.yml`**: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` (private key with access to the
+  VPS), `VPS_DEPLOY_PATH` (absolute path to the app on the VPS)
 
 ## License
 
