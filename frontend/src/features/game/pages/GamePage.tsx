@@ -13,6 +13,7 @@ export function GamePage() {
   const [activeQuestionLevelId, setActiveQuestionLevelId] = useState<number | null>(null)
 
   useEffect(() => gameEvents.on('npcInteract', ({ levelId }) => setActiveQuestionLevelId(levelId)), [])
+  useEffect(() => gameEvents.on('exitToMenu', () => setSelectedLevelId(null)), [])
 
   useEffect(() => {
     if (!levelsQuery.data || selectedLevelId !== null) return
