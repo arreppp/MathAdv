@@ -13,6 +13,9 @@ interface PhaserGameProps {
 /** Internal render resolution the scenes are authored against; the ScaleManager fits this to whatever size the player's screen/container gives it. */
 const BASE_WIDTH = 768
 const BASE_HEIGHT = 432
+const BASE_ASPECT = BASE_WIDTH / BASE_HEIGHT
+/** How much wider than 16:9 the viewport is allowed to grow on ultra-wide screens before we cap it and let FIT letterbox the rest, so wide monitors don't trivialize jumps/hazards by revealing far more of the level than the levels were designed around. */
+const MAX_ASPECT = 2.2
 
 /**
  * Mount once per levelId - the parent should key this component by
@@ -26,6 +29,10 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return
 
+    const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect()
+    const containerAspect = containerHeight > 0 ? containerWidth / containerHeight : BASE_ASPECT
+    const gameWidth = Math.round(BASE_HEIGHT * Math.min(Math.max(containerAspect, BASE_ASPECT), MAX_ASPECT))
+
     const game = new Phaser.Game({
       type: Phaser.CANVAS,
       parent: containerRef.current,
@@ -34,7 +41,7 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: BASE_WIDTH,
+        width: gameWidth,
         height: BASE_HEIGHT,
       },
       // Allow multiple simultaneous touches so mobile players can hold a
