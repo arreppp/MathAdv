@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import { BootScene } from '@/features/game/scenes/BootScene'
+import { ControlsScene } from '@/features/game/scenes/ControlsScene'
+import { GameOverScene } from '@/features/game/scenes/GameOverScene'
+import { PauseScene } from '@/features/game/scenes/PauseScene'
 import { World1Scene } from '@/features/game/scenes/World1Scene'
 
 interface PhaserGameProps {
@@ -20,13 +23,14 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
     if (!containerRef.current || gameRef.current) return
 
     const game = new Phaser.Game({
-      type: Phaser.AUTO,
+      type: Phaser.CANVAS,
       width: 768,
       height: 432,
       parent: containerRef.current,
-      backgroundColor: '#fdf6e3',
-      physics: { default: 'arcade', arcade: { debug: false } },
-      scene: [BootScene, World1Scene],
+      backgroundColor: '#16302a',
+      pixelArt: true,
+      physics: { default: 'arcade', arcade: { debug: false, gravity: { x: 0, y: 900 } } },
+      scene: [BootScene, World1Scene, PauseScene, ControlsScene, GameOverScene],
     })
 
     game.scene.start('BootScene', { levelId })
