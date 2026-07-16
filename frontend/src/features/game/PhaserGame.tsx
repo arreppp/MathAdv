@@ -38,6 +38,10 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: BASE_WIDTH,
         height: BASE_HEIGHT,
+        // Fullscreen the container itself - ScaleManager measures `parent`
+        // for sizing, and without this it'd measure a div Phaser auto-wraps
+        // around the canvas instead, which never actually resizes.
+        fullscreenTarget: containerRef.current,
       },
       // Allow multiple simultaneous touches so mobile players can hold a
       // direction button and tap jump at the same time.
@@ -76,7 +80,9 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
     <div className="relative w-full">
       <div
         ref={containerRef}
-        className="aspect-[16/9] w-full overflow-hidden rounded-3xl bg-[#16302a] [&>canvas]:mx-auto [&>canvas]:block"
+        className={`w-full overflow-hidden bg-[#16302a] [&>canvas]:mx-auto [&>canvas]:block ${
+          isFullscreen ? 'h-screen' : 'aspect-[16/9] rounded-3xl'
+        }`}
       />
       {fullscreenSupported && (
         <button

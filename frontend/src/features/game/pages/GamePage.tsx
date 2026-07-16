@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchLevels } from '@/features/game/api'
@@ -11,14 +11,18 @@ export function GamePage() {
   const levelsQuery = useQuery({ queryKey: ['levels'], queryFn: fetchLevels })
   const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null)
   const [activeQuestionLevelId, setActiveQuestionLevelId] = useState<number | null>(null)
+  const hasAutoSelected = useRef(false)
 
   useEffect(() => gameEvents.on('npcInteract', ({ levelId }) => setActiveQuestionLevelId(levelId)), [])
   useEffect(() => gameEvents.on('exitToMenu', () => setSelectedLevelId(null)), [])
 
   useEffect(() => {
-    if (!levelsQuery.data || selectedLevelId !== null) return
+    if (!levelsQuery.data || selectedLevelId !== null || hasAutoSelected.current) return
     const firstPlayable = levelsQuery.data.find((level) => level.unlocked)
-    if (firstPlayable) setSelectedLevelId(firstPlayable.id)
+    if (firstPlayable) {
+      hasAutoSelected.current = true
+      setSelectedLevelId(firstPlayable.id)
+    }
   }, [levelsQuery.data, selectedLevelId])
 
   return (
@@ -56,7 +60,9 @@ export function GamePage() {
           {selectedLevelId ? (
             <PhaserGame key={selectedLevelId} levelId={selectedLevelId} />
           ) : (
-            <p className="p-10 text-center text-adventure-700">Loading your adventure...</p>
+            <p className="p-10 text-center text-adventure-700">
+              {levelsQuery.isLoading ? 'Loading your adventure...' : 'Pick a level above to play!'}
+            </p>
           )}
         </Card>
       </div>

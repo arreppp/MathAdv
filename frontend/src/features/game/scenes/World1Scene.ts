@@ -324,12 +324,6 @@ export class World1Scene extends Phaser.Scene {
       { x: 2430, y: this.hill2Y - 40 }, // second hilltop, guarded by a spike
       { x: 2980, y: this.groundY - 40 },
       { x: 3150, y: this.podiumY - 40 }, // final key, right by the chest
-      // one key floating just above every floating platform - reaching it
-      // means sticking the landing, not just walking up to it
-      ...this.platformSpots.map(({ x, clearance }) => ({
-        x,
-        y: this.terrainHeightAt(x) - clearance - 34,
-      })),
     ]
 
     positions.forEach(({ x, y }) => {
@@ -389,13 +383,10 @@ export class World1Scene extends Phaser.Scene {
       return
     }
 
-    this.popText(originX, originY, 'Try the next one!', '#dc2626', 16)
+    this.popText(originX, originY, 'Wrong answer!', '#dc2626', 16)
     this.updateHud()
     this.activeChest = null
-
-    this.time.delayedCall(400, () => {
-      this.canInteractChest = true
-    })
+    this.endGame(false)
   }
 
   private buildSpikes() {
