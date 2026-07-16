@@ -43,6 +43,7 @@ export class World1Scene extends Phaser.Scene {
   private podiumY = 0
   private waypoints: Waypoint[] = []
   private pits: PitRange[] = []
+  private platformSpots: Array<{ x: number; clearance: number }> = []
   private spawnX = 200
   private spawnY = 0
   private fallDeathY = 0
@@ -125,6 +126,13 @@ export class World1Scene extends Phaser.Scene {
       { start: 1140, end: 1290 },
       { start: 1660, end: 1800 },
       { start: 2760, end: 2930 },
+    ]
+    this.platformSpots = [
+      { x: 500, clearance: 90 },
+      { x: 1470, clearance: 110 },
+      { x: 1900, clearance: 70 },
+      { x: 2000, clearance: 140 },
+      { x: 2845, clearance: 60 },
     ]
 
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, height + 260)
@@ -288,17 +296,10 @@ export class World1Scene extends Phaser.Scene {
   /** Floating platforms are one-way: solid from above, but the player can jump up through them from below. */
   private buildPlatforms(): Phaser.Physics.Arcade.StaticGroup {
     const platforms = this.physics.add.staticGroup()
-    // clearance is measured above the *local* terrain height, not a flat
-    // baseline, so platforms stay clear of the hills instead of sinking
-    // into their slopes.
-    const positions = [
-      { x: 500, clearance: 90 },
-      { x: 1470, clearance: 110 },
-      { x: 1900, clearance: 70 },
-      { x: 2000, clearance: 140 },
-      { x: 2845, clearance: 60 },
-    ]
-    positions.forEach(({ x, clearance }) => {
+    this.platformSpots.forEach(({ x, clearance }) => {
+      // clearance is measured above the *local* terrain height, not a flat
+      // baseline, so platforms stay clear of the hills instead of sinking
+      // into their slopes.
       const y = this.terrainHeightAt(x) - clearance
       const platform = platforms.create(x, y, 'platform') as PhysicsImage
       platform.refreshBody()
@@ -320,11 +321,15 @@ export class World1Scene extends Phaser.Scene {
       { x: 1370, y: this.groundY - 40 },
       { x: 1520, y: this.groundY - 40 },
       { x: 1620, y: this.groundY - 40 }, // right at the edge of a pit
-      { x: 1900, y: this.groundY - 70 - 34 }, // above the lower bonus platform
-      { x: 2000, y: this.groundY - 140 - 34 }, // above the higher bonus platform
       { x: 2430, y: this.hill2Y - 40 }, // second hilltop, guarded by a spike
       { x: 2980, y: this.groundY - 40 },
       { x: 3150, y: this.podiumY - 40 }, // final key, right by the chest
+      // one key floating just above every floating platform - reaching it
+      // means sticking the landing, not just walking up to it
+      ...this.platformSpots.map(({ x, clearance }) => ({
+        x,
+        y: this.terrainHeightAt(x) - clearance - 34,
+      })),
     ]
 
     positions.forEach(({ x, y }) => {
