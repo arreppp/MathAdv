@@ -77,11 +77,11 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
   }
 
   return (
-    <div className="relative w-full">
+    <div className="relative h-full w-full">
       <div
         ref={containerRef}
-        className={`w-full overflow-hidden bg-[#16302a] [&>canvas]:mx-auto [&>canvas]:block ${
-          isFullscreen ? 'h-screen' : 'aspect-[16/9] rounded-3xl'
+        className={`h-full w-full overflow-hidden bg-[#16302a] [&>canvas]:mx-auto [&>canvas]:block ${
+          isFullscreen ? '' : 'rounded-3xl'
         }`}
       />
       {fullscreenSupported && (

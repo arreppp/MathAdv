@@ -26,8 +26,8 @@ export function GamePage() {
   }, [levelsQuery.data, selectedLevelId])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-adventure-100 via-parchment to-gold-100 px-4 py-8">
-      <div className="mx-auto max-w-3xl">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-adventure-100 via-parchment to-gold-100 px-4 py-3">
+      <div className="mx-auto w-full max-w-5xl shrink-0">
         <Link to="/dashboard" className="font-display text-sm font-semibold text-adventure-700 hover:underline">
           ← Back to Dashboard
         </Link>
@@ -55,17 +55,17 @@ export function GamePage() {
             </button>
           ))}
         </div>
-
-        <Card className="mt-6 p-2">
-          {selectedLevelId ? (
-            <PhaserGame key={selectedLevelId} levelId={selectedLevelId} />
-          ) : (
-            <p className="p-10 text-center text-adventure-700">
-              {levelsQuery.isLoading ? 'Loading your adventure...' : 'Pick a level above to play!'}
-            </p>
-          )}
-        </Card>
       </div>
+
+      <Card className="mx-auto mt-4 min-h-0 w-full flex-1 p-2">
+        {selectedLevelId ? (
+          <PhaserGame key={selectedLevelId} levelId={selectedLevelId} />
+        ) : (
+          <p className="p-10 text-center text-adventure-700">
+            {levelsQuery.isLoading ? 'Loading your adventure...' : 'Pick a level above to play!'}
+          </p>
+        )}
+      </Card>
 
       <QuestionOverlay levelId={activeQuestionLevelId} onClose={() => setActiveQuestionLevelId(null)} />
     </div>
