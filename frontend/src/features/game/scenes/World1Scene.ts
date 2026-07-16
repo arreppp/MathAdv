@@ -288,14 +288,18 @@ export class World1Scene extends Phaser.Scene {
   /** Floating platforms are one-way: solid from above, but the player can jump up through them from below. */
   private buildPlatforms(): Phaser.Physics.Arcade.StaticGroup {
     const platforms = this.physics.add.staticGroup()
+    // clearance is measured above the *local* terrain height, not a flat
+    // baseline, so platforms stay clear of the hills instead of sinking
+    // into their slopes.
     const positions = [
-      { x: 500, y: this.groundY - 90 },
-      { x: 1470, y: this.groundY - 110 },
-      { x: 1900, y: this.groundY - 70 },
-      { x: 2000, y: this.groundY - 140 },
-      { x: 2845, y: this.groundY - 60 },
+      { x: 500, clearance: 90 },
+      { x: 1470, clearance: 110 },
+      { x: 1900, clearance: 70 },
+      { x: 2000, clearance: 140 },
+      { x: 2845, clearance: 60 },
     ]
-    positions.forEach(({ x, y }) => {
+    positions.forEach(({ x, clearance }) => {
+      const y = this.terrainHeightAt(x) - clearance
       const platform = platforms.create(x, y, 'platform') as PhysicsImage
       platform.refreshBody()
       const body = platform.body as Phaser.Physics.Arcade.StaticBody
