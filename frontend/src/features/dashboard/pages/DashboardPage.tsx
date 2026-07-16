@@ -87,21 +87,25 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-gradient-to-b from-sky-200 via-adventure-200 to-adventure-500">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-[#16302a]">
       <div className="relative z-20 shrink-0 border-b-4 border-black/20 bg-gradient-to-r from-[#3f1524] via-[#6d2440] to-[#3f1524] px-4 py-2 text-center shadow-md">
         <p className="font-display text-xs font-bold tracking-wide text-gold-200 drop-shadow sm:text-base">
           Welcome, <span className="text-white">{user?.name}</span>! Let's Embark on the Maths Journey Together!
         </p>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        <div className="pointer-events-none absolute -left-16 top-10 h-56 w-56 rounded-full bg-adventure-700/40 blur-2xl" />
-        <div className="pointer-events-none absolute -right-10 top-24 h-40 w-40 rounded-full bg-adventure-800/40 blur-2xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-adventure-600/30 blur-2xl" />
-        <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 rounded-full bg-gold-200/50 blur-2xl" />
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-[#16302a]">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-repeat-x sm:h-48"
+          style={{ backgroundImage: "url('/pixel/tree-tile.svg')", backgroundSize: '96px 216px' }}
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-7 bg-repeat sm:h-9"
+          style={{ backgroundImage: "url('/pixel/ground-tile.svg')", backgroundSize: '33px 33px' }}
+        />
 
         <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 sm:top-6">
-          <div className="mx-auto h-6 w-1.5 bg-adventure-900/60" />
+          <div className="mx-auto h-6 w-1.5 bg-[#5a3a22]" />
           <div className="-rotate-1 rounded-xl border-4 border-adventure-900 bg-parchment px-5 py-2 shadow-lg sm:px-8 sm:py-3">
             <h1 className="font-display whitespace-nowrap text-xl font-extrabold text-adventure-800 sm:text-3xl">
               MathAdventura<span className="align-super text-xs sm:text-sm">™</span>
