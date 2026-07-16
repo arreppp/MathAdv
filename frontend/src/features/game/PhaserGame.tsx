@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import { BootScene } from '@/features/game/scenes/BootScene'
 import { ControlsScene } from '@/features/game/scenes/ControlsScene'
@@ -22,8 +22,6 @@ const BASE_HEIGHT = 432
 export function PhaserGame({ levelId }: PhaserGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [fullscreenSupported, setFullscreenSupported] = useState(true)
 
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return
@@ -48,15 +46,8 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
 
     game.scene.start('BootScene', { levelId })
     gameRef.current = game
-    setFullscreenSupported(game.scale.fullscreen.available)
-
-    const handleFullscreenChange = () => setIsFullscreen(game.scale.isFullscreen)
-    game.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, handleFullscreenChange)
-    game.scale.on(Phaser.Scale.Events.LEAVE_FULLSCREEN, handleFullscreenChange)
 
     return () => {
-      game.scale.off(Phaser.Scale.Events.ENTER_FULLSCREEN, handleFullscreenChange)
-      game.scale.off(Phaser.Scale.Events.LEAVE_FULLSCREEN, handleFullscreenChange)
       game.destroy(true)
       gameRef.current = null
     }
@@ -65,28 +56,5 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const toggleFullscreen = () => {
-    const scale = gameRef.current?.scale
-    if (!scale) return
-    if (scale.isFullscreen) scale.stopFullscreen()
-    else scale.startFullscreen()
-  }
-
-  return (
-    <div className="relative w-full">
-      <div
-        ref={containerRef}
-        className="aspect-[16/9] w-full overflow-hidden rounded-3xl bg-[#16302a] [&>canvas]:mx-auto [&>canvas]:block"
-      />
-      {fullscreenSupported && (
-        <button
-          type="button"
-          onClick={toggleFullscreen}
-          className="absolute right-3 top-3 z-10 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black/70"
-        >
-          {isFullscreen ? '⤢ Exit Fullscreen' : '⛶ Fullscreen'}
-        </button>
-      )}
-    </div>
-  )
+  return <div ref={containerRef} className="h-full w-full overflow-hidden bg-[#16302a] [&>canvas]:mx-auto [&>canvas]:block" />
 }

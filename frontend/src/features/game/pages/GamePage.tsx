@@ -1,29 +1,32 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchLevels } from '@/features/game/api'
 import { QuestionOverlay } from '@/features/game/components/QuestionOverlay'
 import { gameEvents } from '@/features/game/gameEvents'
 import { PhaserGame } from '@/features/game/PhaserGame'
-import { Card } from '@/shared/ui/Card'
 
 export function GamePage() {
   const levelsQuery = useQuery({ queryKey: ['levels'], queryFn: fetchLevels })
   const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null)
   const [activeQuestionLevelId, setActiveQuestionLevelId] = useState<number | null>(null)
+  const hasAutoSelected = useRef(false)
 
   useEffect(() => gameEvents.on('npcInteract', ({ levelId }) => setActiveQuestionLevelId(levelId)), [])
   useEffect(() => gameEvents.on('exitToMenu', () => setSelectedLevelId(null)), [])
 
   useEffect(() => {
-    if (!levelsQuery.data || selectedLevelId !== null) return
+    if (!levelsQuery.data || selectedLevelId !== null || hasAutoSelected.current) return
     const firstPlayable = levelsQuery.data.find((level) => level.unlocked)
-    if (firstPlayable) setSelectedLevelId(firstPlayable.id)
+    if (firstPlayable) {
+      hasAutoSelected.current = true
+      setSelectedLevelId(firstPlayable.id)
+    }
   }, [levelsQuery.data, selectedLevelId])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-adventure-100 via-parchment to-gold-100 px-4 py-8">
-      <div className="mx-auto max-w-3xl">
+    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-b from-adventure-100 via-parchment to-gold-100">
+      <div className="mx-auto w-full max-w-5xl shrink-0 px-4 pt-3">
         <Link to="/dashboard" className="font-display text-sm font-semibold text-adventure-700 hover:underline">
           ← Back to Dashboard
         </Link>
@@ -51,14 +54,16 @@ export function GamePage() {
             </button>
           ))}
         </div>
+      </div>
 
-        <Card className="mt-6 p-2">
-          {selectedLevelId ? (
-            <PhaserGame key={selectedLevelId} levelId={selectedLevelId} />
-          ) : (
-            <p className="p-10 text-center text-adventure-700">Loading your adventure...</p>
-          )}
-        </Card>
+      <div className="min-h-0 w-full flex-1">
+        {selectedLevelId ? (
+          <PhaserGame key={selectedLevelId} levelId={selectedLevelId} />
+        ) : (
+          <p className="p-10 text-center text-adventure-700">
+            {levelsQuery.isLoading ? 'Loading your adventure...' : 'Pick a level above to play!'}
+          </p>
+        )}
       </div>
 
       <QuestionOverlay levelId={activeQuestionLevelId} onClose={() => setActiveQuestionLevelId(null)} />
