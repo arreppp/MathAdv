@@ -25,8 +25,8 @@ export function GamePage() {
   }, [levelsQuery.data, selectedLevelId])
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-adventure-100 via-parchment to-gold-100">
-      <div className="mx-auto w-full max-w-5xl shrink-0 px-4 py-3">
+    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-b from-adventure-100 via-parchment to-gold-100">
+      <div className="mx-auto w-full max-w-5xl shrink-0 px-4 pt-3">
         <Link to="/dashboard" className="font-display text-sm font-semibold text-adventure-700 hover:underline">
           ← Back to Dashboard
         </Link>
