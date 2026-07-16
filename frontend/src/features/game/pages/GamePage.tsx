@@ -5,7 +5,6 @@ import { fetchLevels } from '@/features/game/api'
 import { QuestionOverlay } from '@/features/game/components/QuestionOverlay'
 import { gameEvents } from '@/features/game/gameEvents'
 import { PhaserGame } from '@/features/game/PhaserGame'
-import { Card } from '@/shared/ui/Card'
 
 export function GamePage() {
   const levelsQuery = useQuery({ queryKey: ['levels'], queryFn: fetchLevels })
@@ -26,8 +25,8 @@ export function GamePage() {
   }, [levelsQuery.data, selectedLevelId])
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-adventure-100 via-parchment to-gold-100 px-4 py-3">
-      <div className="mx-auto w-full max-w-5xl shrink-0">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-adventure-100 via-parchment to-gold-100">
+      <div className="mx-auto w-full max-w-5xl shrink-0 px-4 py-3">
         <Link to="/dashboard" className="font-display text-sm font-semibold text-adventure-700 hover:underline">
           ← Back to Dashboard
         </Link>
@@ -57,7 +56,7 @@ export function GamePage() {
         </div>
       </div>
 
-      <Card className="mx-auto mt-4 min-h-0 w-full flex-1 p-2">
+      <div className="min-h-0 w-full flex-1">
         {selectedLevelId ? (
           <PhaserGame key={selectedLevelId} levelId={selectedLevelId} />
         ) : (
@@ -65,7 +64,7 @@ export function GamePage() {
             {levelsQuery.isLoading ? 'Loading your adventure...' : 'Pick a level above to play!'}
           </p>
         )}
-      </Card>
+      </div>
 
       <QuestionOverlay levelId={activeQuestionLevelId} onClose={() => setActiveQuestionLevelId(null)} />
     </div>
