@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { AchievementsPage } from '@/features/achievements/pages/AchievementsPage'
 import { AdminPage } from '@/features/admin/pages/AdminPage'
+import { GuestRoute } from '@/features/auth/components/GuestRoute'
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
@@ -15,9 +16,30 @@ import { TeacherDashboardPage } from '@/features/teacher/pages/TeacherDashboardP
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/"
+        element={
+          <GuestRoute>
+            <LandingPage />
+          </GuestRoute>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <GuestRoute>
+            <LoginPage />
+          </GuestRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <GuestRoute>
+            <RegisterPage />
+          </GuestRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={
