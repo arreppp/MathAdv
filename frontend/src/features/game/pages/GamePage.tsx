@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { fetchLevels } from '@/features/game/api'
 import { QuestionOverlay } from '@/features/game/components/QuestionOverlay'
 import { gameEvents } from '@/features/game/gameEvents'
 import { PhaserGame } from '@/features/game/PhaserGame'
 
 export function GamePage() {
+  const navigate = useNavigate()
   const levelsQuery = useQuery({ queryKey: ['levels'], queryFn: fetchLevels })
   const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null)
   const [activeQuestionLevelId, setActiveQuestionLevelId] = useState<number | null>(null)
@@ -14,6 +15,7 @@ export function GamePage() {
 
   useEffect(() => gameEvents.on('npcInteract', ({ levelId }) => setActiveQuestionLevelId(levelId)), [])
   useEffect(() => gameEvents.on('exitToMenu', () => setSelectedLevelId(null)), [])
+  useEffect(() => gameEvents.on('exitToDashboard', () => navigate('/dashboard')), [navigate])
 
   useEffect(() => {
     if (!levelsQuery.data || selectedLevelId !== null || hasAutoSelected.current) return

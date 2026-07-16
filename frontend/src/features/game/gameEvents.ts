@@ -18,6 +18,7 @@ export interface GameEvents {
   npcInteract: { levelId: number }
   answerResult: { correct: boolean; xpAwarded: number; levelCompleted: boolean }
   exitToMenu: Record<string, never>
+  exitToDashboard: Record<string, never>
 }
 
 /**
