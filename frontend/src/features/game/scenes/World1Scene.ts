@@ -11,7 +11,7 @@ type Keys = Record<'W' | 'A' | 'D', Phaser.Input.Keyboard.Key>
 
 const WORLD_WIDTH = 3200
 const GROUND_HEIGHT = 40
-const MAX_HEARTS = 4
+const MAX_HEARTS = 3
 const KEY_TARGET = 10
 const MATCH_SECONDS = 90
 const MOVE_SPEED = 220
@@ -166,7 +166,7 @@ export class World1Scene extends Phaser.Scene {
       .setAlpha(0.85)
       .setDepth(0)
     this.add
-      .text(width / 2, 20, `Collect at least ${KEY_TARGET} keys to win`, {
+      .text(width / 2, 20, `Collect ${KEY_TARGET} keys to unlock a chest!`, {
         fontFamily: '"Baloo 2", sans-serif',
         fontSize: '14px',
         color: '#fde68a',
@@ -232,7 +232,6 @@ export class World1Scene extends Phaser.Scene {
     this.score += 10
     this.popText(key.x, key.y, '+10', '#f5c518')
     this.updateHud()
-    if (this.keysCollected >= KEY_TARGET) this.endGame(true)
   }
 
   private buildChests() {
@@ -249,6 +248,16 @@ export class World1Scene extends Phaser.Scene {
 
   private handleChestContact(chest: PhysicsImage) {
     if (!this.canInteractChest || chest.getData('opened') || this.ended) return
+
+    if (this.keysCollected < KEY_TARGET) {
+      this.canInteractChest = false
+      this.popText(chest.x, chest.y - 20, `Need ${KEY_TARGET} keys! (${this.keysCollected}/${KEY_TARGET})`, '#f5c518', 14)
+      this.time.delayedCall(800, () => {
+        this.canInteractChest = true
+      })
+      return
+    }
+
     this.canInteractChest = false
     this.activeChest = chest
     gameEvents.emit('npcInteract', { levelId: this.levelId })
@@ -262,20 +271,17 @@ export class World1Scene extends Phaser.Scene {
     if (payload.correct && chest) {
       chest.setData('opened', true)
       chest.setTint(0xffe08a)
-      this.keysCollected += 2
       this.score += 50
       this.popText(originX, originY, '+50', '#f5c518', 24)
-    } else if (!payload.correct) {
-      this.popText(originX, originY, 'Try the next one!', '#dc2626', 16)
-    }
-
-    this.updateHud()
-    this.activeChest = null
-
-    if (this.keysCollected >= KEY_TARGET) {
+      this.updateHud()
+      this.activeChest = null
       this.endGame(true)
       return
     }
+
+    this.popText(originX, originY, 'Try the next one!', '#dc2626', 16)
+    this.updateHud()
+    this.activeChest = null
 
     this.time.delayedCall(400, () => {
       this.canInteractChest = true
@@ -447,7 +453,7 @@ export class World1Scene extends Phaser.Scene {
     this.heartIcons.forEach((icon, index) => {
       icon.setTexture(index < this.hearts ? 'heart_full' : 'heart_empty')
     })
-    this.keysText.setText(`Keys: ${this.keysCollected} / ${KEY_TARGET}`)
+    this.keysText.setText(`Keys: ${Math.min(this.keysCollected, KEY_TARGET)} / ${KEY_TARGET}`)
     this.scoreText.setText(`${this.score} Points`)
     this.highScoreText.setText(`Highscore: ${Math.max(this.score, this.highScore)}`)
   }
