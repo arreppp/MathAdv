@@ -30,14 +30,16 @@ export class ControlsScene extends Phaser.Scene {
     const lines = [
       '◀ / A   -  move left',
       '▶ / D   -  move right',
-      'SPACE / ▲ / JUMP  -  jump',
+      'SPACE / ▲ / JUMP  -  jump (works while moving too!)',
+      'Platforms are one-way - jump up through them',
+      'Watch for holes - falling in costs a life',
       'II   -  pause the game',
       'i   -  view these controls',
     ]
 
     lines.forEach((line, index) => {
       this.add
-        .text(width / 2, height * 0.32 + index * 28, line, {
+        .text(width / 2, height * 0.28 + index * 24, line, {
           fontFamily: '"Nunito", sans-serif',
           fontSize: '15px',
           color: '#ffffff',

@@ -5,18 +5,30 @@ interface World1SceneData {
   levelId: number
 }
 
-type StaticZone = Phaser.GameObjects.Rectangle & { body: Phaser.Physics.Arcade.StaticBody }
 type PhysicsImage = Phaser.Physics.Arcade.Image
 type Keys = Record<'W' | 'A' | 'D', Phaser.Input.Keyboard.Key>
+type Waypoint = { x: number; y: number }
+type PitRange = { start: number; end: number }
+type MovingHazard = { image: PhysicsImage; minX: number; maxX: number }
 
 const WORLD_WIDTH = 3200
 const GROUND_HEIGHT = 40
+const TILE = 33
+const GROUND_FILL_DEPTH = 6
 const MAX_HEARTS = 3
 const KEY_TARGET = 10
 const MATCH_SECONDS = 90
 const MOVE_SPEED = 220
 const JUMP_VELOCITY = -480
+const HAZARD_SPEED = 70
 
+/**
+ * The world profile is authored as a list of (x, y) waypoints describing the
+ * top of the terrain. Between two waypoints of different height the ground
+ * rises/falls in TILE-sized staircase steps (easy to jump, matches the
+ * blocky pixel-art look). A PitRange marks a gap with no ground at all -
+ * falling in costs a life and respawns the player at the start.
+ */
 export class World1Scene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
@@ -26,6 +38,14 @@ export class World1Scene extends Phaser.Scene {
 
   private levelId = 1
   private groundY = 0
+  private hill1Y = 0
+  private hill2Y = 0
+  private podiumY = 0
+  private waypoints: Waypoint[] = []
+  private pits: PitRange[] = []
+  private spawnX = 200
+  private spawnY = 0
+  private fallDeathY = 0
   private highScoreKey = 'mathadv_highscore_world1'
 
   private hearts = MAX_HEARTS
@@ -41,6 +61,7 @@ export class World1Scene extends Phaser.Scene {
   private touchLeft = false
   private touchRight = false
   private jumpQueued = false
+  private movingHazards: MovingHazard[] = []
 
   private heartIcons: Phaser.GameObjects.Image[] = []
   private keysText!: Phaser.GameObjects.Text
@@ -67,6 +88,7 @@ export class World1Scene extends Phaser.Scene {
     this.touchLeft = false
     this.touchRight = false
     this.jumpQueued = false
+    this.movingHazards = []
     this.heartIcons = []
     this.highScore = Number(localStorage.getItem(this.highScoreKey) ?? 0)
   }
@@ -74,28 +96,67 @@ export class World1Scene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale
     this.groundY = height - GROUND_HEIGHT
+    this.hill1Y = this.groundY - 99
+    this.hill2Y = this.groundY - 132
+    this.podiumY = this.groundY - 66
+    this.spawnX = 200
+    this.spawnY = this.groundY - 40
+    this.fallDeathY = height + 60
 
-    this.physics.world.setBounds(0, 0, WORLD_WIDTH, height)
+    this.waypoints = [
+      { x: 0, y: this.groundY },
+      { x: 380, y: this.groundY },
+      { x: 590, y: this.hill1Y }, // hill 1 - uphill
+      { x: 850, y: this.hill1Y }, // hill 1 - plateau
+      { x: 1060, y: this.groundY }, // hill 1 - downhill
+      { x: 1290, y: this.groundY },
+      { x: 1660, y: this.groundY },
+      { x: 1800, y: this.groundY },
+      { x: 2100, y: this.groundY },
+      { x: 2380, y: this.hill2Y }, // hill 2 - uphill
+      { x: 2480, y: this.hill2Y }, // hill 2 - plateau
+      { x: 2760, y: this.groundY }, // hill 2 - downhill
+      { x: 2930, y: this.groundY },
+      { x: 3050, y: this.groundY },
+      { x: 3120, y: this.podiumY }, // final climb to the goal podium
+      { x: WORLD_WIDTH, y: this.podiumY },
+    ]
+    this.pits = [
+      { start: 1140, end: 1290 },
+      { start: 1660, end: 1800 },
+      { start: 2760, end: 2930 },
+    ]
+
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, height + 260)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, height)
 
     this.buildBackground(width, height)
-    const groundZone = this.buildGround(height)
+    const ground = this.buildGround()
     const platforms = this.buildPlatforms()
 
-    this.player = this.physics.add.sprite(200, this.groundY - 40, 'player')
+    this.player = this.physics.add.sprite(this.spawnX, this.spawnY, 'player')
     this.player.setSize(24, 30).setOffset(4, 8)
     this.player.setCollideWorldBounds(true)
     this.player.setDragX(900)
     this.player.setMaxVelocity(MOVE_SPEED, 900)
     this.player.setDepth(5)
 
-    this.physics.add.collider(this.player, groundZone)
-    this.physics.add.collider(this.player, platforms)
+    this.physics.add.collider(this.player, ground)
+    this.physics.add.collider(
+      this.player,
+      platforms,
+      undefined,
+      (playerObj, platformObj) => {
+        const body = (playerObj as Phaser.Physics.Arcade.Sprite).body as Phaser.Physics.Arcade.Body
+        const platformBody = (platformObj as PhysicsImage).body as Phaser.Physics.Arcade.StaticBody
+        return body.velocity.y >= 0 && body.bottom <= platformBody.top + 8
+      },
+    )
 
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12)
 
     this.buildKeys()
-    this.buildChests()
+    this.buildChest()
     this.buildSpikes()
     this.buildHud(width)
     this.buildTouchControls(width, height)
@@ -128,6 +189,13 @@ export class World1Scene extends Phaser.Scene {
   update() {
     if (this.ended) return
 
+    if (this.player.y > this.fallDeathY) {
+      this.handleFallDeath()
+      return
+    }
+
+    this.updateMovingHazards()
+
     const body = this.player.body as Phaser.Physics.Arcade.Body
     const onGround = body.blocked.down || body.touching.down
 
@@ -142,6 +210,8 @@ export class World1Scene extends Phaser.Scene {
 
     if (this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) this.pauseGame()
 
+    // Movement and jumping are independent checks below, so holding a
+    // direction and pressing jump in the same frame does both at once.
     if (left) {
       this.player.setVelocityX(-MOVE_SPEED)
       this.player.setFlipX(true)
@@ -166,9 +236,9 @@ export class World1Scene extends Phaser.Scene {
       .setAlpha(0.85)
       .setDepth(0)
     this.add
-      .text(width / 2, 20, `Collect ${KEY_TARGET} keys to unlock a chest!`, {
+      .text(width / 2, 20, `Collect ${KEY_TARGET} keys, then find the chest at world's end!`, {
         fontFamily: '"Baloo 2", sans-serif',
-        fontSize: '14px',
+        fontSize: '13px',
         color: '#fde68a',
       })
       .setOrigin(0.5)
@@ -176,47 +246,82 @@ export class World1Scene extends Phaser.Scene {
       .setDepth(10)
   }
 
-  private buildGround(height: number): StaticZone {
-    this.add
-      .tileSprite(WORLD_WIDTH / 2, this.groundY + GROUND_HEIGHT / 2, WORLD_WIDTH, GROUND_HEIGHT, 'ground')
-      .setDepth(1)
-    const zone = this.add.rectangle(
-      WORLD_WIDTH / 2,
-      this.groundY + GROUND_HEIGHT / 2,
-      WORLD_WIDTH,
-      GROUND_HEIGHT,
-      0x000000,
-      0,
-    ) as StaticZone
-    this.physics.add.existing(zone, true)
-    void height
-    return zone
+  /** Height of the walkable surface at x, stepping in TILE increments between waypoints. */
+  private terrainHeightAt(x: number): number {
+    const wp = this.waypoints
+    for (let i = 0; i < wp.length - 1; i += 1) {
+      const a = wp[i]
+      const b = wp[i + 1]
+      if (x < a.x || x > b.x) continue
+      if (a.y === b.y) return a.y
+      const steps = Math.max(1, Math.round(Math.abs(b.y - a.y) / TILE))
+      const stepWidth = (b.x - a.x) / steps
+      const stepIndex = Math.min(steps - 1, Math.floor((x - a.x) / stepWidth))
+      return a.y + ((b.y - a.y) / steps) * (stepIndex + 1)
+    }
+    return wp[wp.length - 1].y
   }
 
+  private isPit(x: number): boolean {
+    return this.pits.some((p) => x >= p.start && x < p.end)
+  }
+
+  private buildGround(): Phaser.Physics.Arcade.StaticGroup {
+    const group = this.physics.add.staticGroup()
+    for (let x = TILE / 2; x < WORLD_WIDTH; x += TILE) {
+      if (this.isPit(x)) continue
+      const surfaceY = this.terrainHeightAt(x)
+      for (let row = 0; row < GROUND_FILL_DEPTH; row += 1) {
+        const cy = surfaceY + TILE / 2 + row * TILE
+        if (row === 0) {
+          const tile = group.create(x, cy, 'ground') as PhysicsImage
+          tile.setDepth(1)
+          tile.refreshBody()
+        } else {
+          this.add.image(x, cy, 'ground').setDepth(1)
+        }
+      }
+    }
+    return group
+  }
+
+  /** Floating platforms are one-way: solid from above, but the player can jump up through them from below. */
   private buildPlatforms(): Phaser.Physics.Arcade.StaticGroup {
     const platforms = this.physics.add.staticGroup()
     const positions = [
-      { x: 620, y: this.groundY - 90 },
-      { x: 1150, y: this.groundY - 120 },
-      { x: 1750, y: this.groundY - 90 },
-      { x: 2300, y: this.groundY - 130 },
-      { x: 2750, y: this.groundY - 90 },
+      { x: 500, y: this.groundY - 90 },
+      { x: 1470, y: this.groundY - 110 },
+      { x: 1900, y: this.groundY - 70 },
+      { x: 2000, y: this.groundY - 140 },
+      { x: 2845, y: this.groundY - 60 },
     ]
     positions.forEach(({ x, y }) => {
       const platform = platforms.create(x, y, 'platform') as PhysicsImage
       platform.refreshBody()
+      const body = platform.body as Phaser.Physics.Arcade.StaticBody
+      body.checkCollision.up = true
+      body.checkCollision.down = false
+      body.checkCollision.left = false
+      body.checkCollision.right = false
     })
     return platforms
   }
 
   private buildKeys() {
-    const positions: Array<{ x: number; y: number }> = []
-    for (let i = 0; i < 12; i += 1) {
-      const x = 320 + i * 250 + (i % 2 === 0 ? 0 : 40)
-      const onPlatform = i % 3 === 1
-      const y = onPlatform ? this.groundY - 150 : this.groundY - 40
-      positions.push({ x, y })
-    }
+    const positions: Waypoint[] = [
+      { x: 240, y: this.groundY - 40 },
+      { x: 340, y: this.groundY - 40 },
+      { x: 680, y: this.hill1Y - 40 }, // hilltop - climb the first hill to reach it
+      { x: 760, y: this.hill1Y - 40 },
+      { x: 1370, y: this.groundY - 40 },
+      { x: 1520, y: this.groundY - 40 },
+      { x: 1620, y: this.groundY - 40 }, // right at the edge of a pit
+      { x: 1900, y: this.groundY - 70 - 34 }, // above the lower bonus platform
+      { x: 2000, y: this.groundY - 140 - 34 }, // above the higher bonus platform
+      { x: 2430, y: this.hill2Y - 40 }, // second hilltop, guarded by a spike
+      { x: 2980, y: this.groundY - 40 },
+      { x: 3150, y: this.podiumY - 40 }, // final key, right by the chest
+    ]
 
     positions.forEach(({ x, y }) => {
       const key = this.physics.add.staticImage(x, y, 'key')
@@ -234,16 +339,12 @@ export class World1Scene extends Phaser.Scene {
     this.updateHud()
   }
 
-  private buildChests() {
-    const positions = [
-      { x: WORLD_WIDTH * 0.35, y: this.groundY - 12 },
-      { x: WORLD_WIDTH * 0.7, y: this.groundY - 12 },
-    ]
-    positions.forEach(({ x, y }) => {
-      const chest = this.physics.add.staticImage(x, y, 'chest')
-      chest.setData('opened', false)
-      this.physics.add.overlap(this.player, chest, () => this.handleChestContact(chest))
-    })
+  private buildChest() {
+    const x = WORLD_WIDTH - 60
+    const y = this.podiumY - 12
+    const chest = this.physics.add.staticImage(x, y, 'chest')
+    chest.setData('opened', false)
+    this.physics.add.overlap(this.player, chest, () => this.handleChestContact(chest))
   }
 
   private handleChestContact(chest: PhysicsImage) {
@@ -289,10 +390,39 @@ export class World1Scene extends Phaser.Scene {
   }
 
   private buildSpikes() {
-    const xs = [780, 1420, 1980, 2560]
-    xs.forEach((x) => {
-      const spike = this.physics.add.staticImage(x, this.groundY - 9, 'spike')
+    const positions: Waypoint[] = [
+      { x: 800, y: this.hill1Y - 9 },
+      { x: 1340, y: this.groundY - 9 },
+      { x: 1580, y: this.groundY - 9 },
+      { x: 2390, y: this.hill2Y - 9 },
+      { x: 2950, y: this.groundY - 9 },
+    ]
+    positions.forEach(({ x, y }) => {
+      const spike = this.physics.add.staticImage(x, y, 'spike')
       this.physics.add.overlap(this.player, spike, () => this.handleSpikeHit())
+    })
+
+    this.buildMovingHazard(1450, this.groundY - 30, 90)
+    this.buildMovingHazard(2990, this.groundY - 30, 40)
+  }
+
+  /** A patrolling hazard that paces back and forth between x-range to add extra obstacle variety. */
+  private buildMovingHazard(x: number, y: number, range: number) {
+    const hazard = this.physics.add.image(x, y, 'spike') as PhysicsImage
+    hazard.setImmovable(true)
+    hazard.setTint(0xff8a8a)
+    const body = hazard.body as Phaser.Physics.Arcade.Body
+    body.allowGravity = false
+    hazard.setVelocityX(HAZARD_SPEED)
+    this.physics.add.overlap(this.player, hazard, () => this.handleSpikeHit())
+    this.movingHazards.push({ image: hazard, minX: x - range, maxX: x + range })
+  }
+
+  private updateMovingHazards() {
+    this.movingHazards.forEach((hazard) => {
+      const body = hazard.image.body as Phaser.Physics.Arcade.Body
+      if (hazard.image.x <= hazard.minX) body.setVelocityX(HAZARD_SPEED)
+      else if (hazard.image.x >= hazard.maxX) body.setVelocityX(-HAZARD_SPEED)
     })
   }
 
@@ -324,6 +454,29 @@ export class World1Scene extends Phaser.Scene {
     }
 
     this.time.delayedCall(1200, () => {
+      this.invulnerable = false
+    })
+  }
+
+  /** Falling into a pit (or off the world) costs a life and sends the player back to the start. */
+  private handleFallDeath() {
+    if (this.invulnerable) return
+    this.invulnerable = true
+    this.hearts -= 1
+    this.updateHud()
+    this.cameras.main.flash(200, 220, 38, 38)
+
+    if (this.hearts <= 0) {
+      this.endGame(false)
+      return
+    }
+
+    this.player.setVelocity(0, 0)
+    this.player.setPosition(this.spawnX, this.spawnY)
+    this.cameras.main.centerOn(this.spawnX, this.spawnY)
+    this.popText(this.spawnX, this.spawnY - 30, 'Fell in a hole! -1 life', '#dc2626', 16)
+
+    this.time.delayedCall(1000, () => {
       this.invulnerable = false
     })
   }

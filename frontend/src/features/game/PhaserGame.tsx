@@ -29,6 +29,9 @@ export function PhaserGame({ levelId }: PhaserGameProps) {
       parent: containerRef.current,
       backgroundColor: '#16302a',
       pixelArt: true,
+      // Allow multiple simultaneous touches so mobile players can hold a
+      // direction button and tap jump at the same time.
+      input: { activePointers: 3 },
       physics: { default: 'arcade', arcade: { debug: false, gravity: { x: 0, y: 900 } } },
       scene: [BootScene, World1Scene, PauseScene, ControlsScene, GameOverScene],
     })
