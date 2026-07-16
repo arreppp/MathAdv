@@ -61,7 +61,7 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5)
 
     this.makeButton(width / 2, height * 0.68, 'Restart', () => this.restart())
-    this.makeButton(width / 2, height * 0.8, 'Main Menu', () => this.exitToMenu())
+    this.makeButton(width / 2, height * 0.8, 'Main Menu', () => this.exitToDashboard())
   }
 
   private makeButton(x: number, y: number, label: string, onClick: () => void) {
@@ -84,7 +84,7 @@ export class GameOverScene extends Phaser.Scene {
     this.scene.start('World1Scene', { levelId: this.sceneData.levelId })
   }
 
-  private exitToMenu() {
-    gameEvents.emit('exitToMenu', {})
+  private exitToDashboard() {
+    gameEvents.emit('exitToDashboard', {})
   }
 }

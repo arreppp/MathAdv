@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { fetchAchievements } from '@/features/achievements/api'
 import { logoutRequest } from '@/features/auth/api'
 import { fetchDashboardSummary } from '@/features/dashboard/api'
+import { fetchLeaderboard } from '@/features/leaderboard/api'
+import { claimDailyReward, fetchDailyReward } from '@/features/rewards/api'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { usePlayerStore } from '@/shared/stores/playerStore'
+import { Button } from '@/shared/ui/Button'
 import { cx } from '@/shared/ui/cx'
 
 const ACTIVITY_ICON: Record<string, string> = {
@@ -14,7 +18,7 @@ const ACTIVITY_ICON: Record<string, string> = {
 
 const MENU_ITEMS = [
   { key: 'play', label: 'Play', to: '/play' },
-  { key: 'leaderboard', label: 'Leaderboard', to: '/leaderboard' },
+  { key: 'leaderboard', label: 'Leaderboard', to: null },
   { key: 'quit', label: 'Quit', to: null },
 ] as const
 
@@ -52,16 +56,71 @@ function HudButton({ icon, label, onClick }: { icon: string; label: string; onCl
   )
 }
 
+function DashboardDialog({
+  title,
+  onClose,
+  widthClass = 'max-w-sm',
+  children,
+}: {
+  title: string
+  onClose: () => void
+  widthClass?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
+      <div
+        className={cx(
+          'max-h-[80vh] w-full overflow-y-auto rounded-3xl border-2 border-adventure-200 bg-white p-5 shadow-xl',
+          widthClass,
+        )}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-bold text-adventure-700">{title}</h2>
+          <button
+            onClick={onClose}
+            className="font-display text-adventure-500 hover:text-adventure-700"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export function DashboardPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const xp = usePlayerStore((state) => state.xp)
   const level = usePlayerStore((state) => state.level)
   const setPlayerStats = usePlayerStore((state) => state.setPlayerStats)
   const [showActivity, setShowActivity] = useState(false)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [showRewards, setShowRewards] = useState(false)
+  const [showAchievements, setShowAchievements] = useState(false)
 
   const summaryQuery = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary })
+  const leaderboardQuery = useQuery({
+    queryKey: ['leaderboard'],
+    queryFn: fetchLeaderboard,
+    enabled: showLeaderboard,
+  })
+  const rewardQuery = useQuery({
+    queryKey: ['daily-reward'],
+    queryFn: fetchDailyReward,
+    enabled: showRewards,
+  })
+  const achievementsQuery = useQuery({
+    queryKey: ['achievements'],
+    queryFn: fetchAchievements,
+    enabled: showAchievements,
+  })
 
   useEffect(() => {
     if (summaryQuery.data) setPlayerStats(summaryQuery.data.student)
@@ -75,15 +134,24 @@ export function DashboardPage() {
     },
   })
 
+  const claimMutation = useMutation({
+    mutationFn: claimDailyReward,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily-reward'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+    },
+  })
+
   // Fall back to the login-time snapshot until the live summary loads, so
   // there's no flash of 0/1 for a returning player.
   const displayXp = summaryQuery.data ? xp : (user?.student?.xp ?? 0)
   const displayLevel = summaryQuery.data ? level : (user?.student?.level ?? 1)
   const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase()
 
-  const handleMenuClick = (to: string | null) => {
-    if (to) navigate(to)
-    else logoutMutation.mutate()
+  const handleMenuClick = (item: (typeof MENU_ITEMS)[number]) => {
+    if (item.key === 'quit') return logoutMutation.mutate()
+    if (item.key === 'leaderboard') return setShowLeaderboard(true)
+    if (item.to) navigate(item.to)
   }
 
   return (
@@ -126,7 +194,7 @@ export function DashboardPage() {
           {MENU_ITEMS.map((item) => (
             <MenuButton
               key={item.key}
-              onClick={() => handleMenuClick(item.to)}
+              onClick={() => handleMenuClick(item)}
               disabled={item.key === 'quit' && logoutMutation.isPending}
             >
               {item.label}
@@ -135,55 +203,129 @@ export function DashboardPage() {
         </div>
 
         <div className="absolute bottom-4 right-4 z-10 flex gap-2.5 sm:bottom-6 sm:right-6 sm:gap-4">
-          <HudButton icon="🎁" label="Daily Reward" onClick={() => navigate('/rewards')} />
+          <HudButton icon="🎁" label="Daily Reward" onClick={() => setShowRewards(true)} />
           <HudButton icon="📜" label="Recent Activity" onClick={() => setShowActivity(true)} />
-          <HudButton icon="🎖️" label="Achievement" onClick={() => navigate('/achievements')} />
+          <HudButton icon="🎖️" label="Achievement" onClick={() => setShowAchievements(true)} />
         </div>
       </div>
 
       {showActivity && (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 px-4"
-          onClick={() => setShowActivity(false)}
-        >
-          <div
-            className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl border-2 border-adventure-200 bg-white p-5 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-lg font-bold text-adventure-700">Recent Activity</h2>
-              <button
-                onClick={() => setShowActivity(false)}
-                className="font-display text-adventure-500 hover:text-adventure-700"
-                aria-label="Close"
+        <DashboardDialog title="Recent Activity" onClose={() => setShowActivity(false)}>
+          {summaryQuery.isLoading && <p className="mt-2 text-sm text-adventure-600">Loading...</p>}
+          {summaryQuery.data?.recent_activity.length === 0 && (
+            <p className="mt-2 text-sm text-adventure-600">No activity yet - go play World 1!</p>
+          )}
+          <ul className="mt-3 space-y-2">
+            {summaryQuery.data?.recent_activity.map((activity, index) => (
+              <li
+                key={index}
+                className="flex items-center gap-3 rounded-xl bg-adventure-50 px-3 py-2 text-sm transition-colors hover:bg-adventure-100"
               >
-                ✕
-              </button>
-            </div>
-            {summaryQuery.isLoading && <p className="mt-2 text-sm text-adventure-600">Loading...</p>}
-            {summaryQuery.data?.recent_activity.length === 0 && (
-              <p className="mt-2 text-sm text-adventure-600">No activity yet - go play World 1!</p>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-base shadow-sm">
+                  {ACTIVITY_ICON[activity.type] ?? '⭐'}
+                </span>
+                <span className="flex-1 text-adventure-800">{activity.description}</span>
+                <span className="shrink-0 text-xs text-adventure-500">
+                  {new Date(activity.created_at).toLocaleTimeString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </DashboardDialog>
+      )}
+
+      {showLeaderboard && (
+        <DashboardDialog title="Global Leaderboard" onClose={() => setShowLeaderboard(false)} widthClass="max-w-md">
+          {leaderboardQuery.isLoading && <p className="mt-2 text-sm text-adventure-600">Loading...</p>}
+          {leaderboardQuery.data?.length === 0 && (
+            <p className="mt-2 text-sm text-adventure-600">No adventurers yet!</p>
+          )}
+          <ol className="mt-3 space-y-2">
+            {leaderboardQuery.data?.map((entry) => (
+              <li
+                key={entry.student_id}
+                className="flex items-center justify-between rounded-xl bg-adventure-50 px-4 py-2 text-sm"
+              >
+                <span className="font-display font-semibold text-adventure-800">
+                  #{entry.rank} {entry.name}
+                </span>
+                <span className="text-adventure-600">
+                  {entry.xp} XP · Lv {entry.level}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </DashboardDialog>
+      )}
+
+      {showRewards && (
+        <DashboardDialog title="Daily Reward" onClose={() => setShowRewards(false)}>
+          <div className="mt-3 text-center">
+            {rewardQuery.isLoading && <p className="text-sm text-adventure-600">Loading...</p>}
+            {rewardQuery.data && !rewardQuery.data.reward && (
+              <p className="text-sm text-adventure-600">
+                {rewardQuery.data.message ?? 'No daily reward is configured yet.'}
+              </p>
             )}
-            <ul className="mt-3 space-y-2">
-              {summaryQuery.data?.recent_activity.map((activity, index) => (
+            {rewardQuery.data?.reward && (
+              <>
+                <p className="font-display text-lg font-bold text-adventure-800">{rewardQuery.data.reward.name}</p>
+                <p className="mt-1 text-adventure-600">+{rewardQuery.data.reward.xp_value} XP</p>
+                <Button
+                  className="mt-4"
+                  disabled={rewardQuery.data.claimed_today || claimMutation.isPending}
+                  onClick={() => claimMutation.mutate()}
+                >
+                  {rewardQuery.data.claimed_today ? 'Already Claimed Today' : 'Claim Reward'}
+                </Button>
+              </>
+            )}
+          </div>
+        </DashboardDialog>
+      )}
+
+      {showAchievements && (
+        <DashboardDialog
+          title="Achievements & Badges"
+          onClose={() => setShowAchievements(false)}
+          widthClass="max-w-md"
+        >
+          <div className="mt-3">
+            <h3 className="font-display text-sm font-bold text-adventure-700">Achievements</h3>
+            {achievementsQuery.isLoading && <p className="mt-2 text-sm text-adventure-600">Loading...</p>}
+            <ul className="mt-2 space-y-2">
+              {achievementsQuery.data?.achievements.map((achievement) => (
                 <li
-                  key={index}
+                  key={achievement.id}
                   className={cx(
-                    'flex items-center gap-3 rounded-xl bg-adventure-50 px-3 py-2 text-sm transition-colors hover:bg-adventure-100',
+                    'rounded-xl px-4 py-2 text-sm',
+                    achievement.earned ? 'bg-gold-100' : 'bg-adventure-50 opacity-60',
                   )}
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-base shadow-sm">
-                    {ACTIVITY_ICON[activity.type] ?? '⭐'}
-                  </span>
-                  <span className="flex-1 text-adventure-800">{activity.description}</span>
-                  <span className="shrink-0 text-xs text-adventure-500">
-                    {new Date(activity.created_at).toLocaleTimeString()}
-                  </span>
+                  <p className="font-display font-semibold text-adventure-800">{achievement.name}</p>
+                  <p className="text-xs text-adventure-600">{achievement.description}</p>
                 </li>
               ))}
             </ul>
           </div>
-        </div>
+          <div className="mt-4">
+            <h3 className="font-display text-sm font-bold text-adventure-700">Badges</h3>
+            <ul className="mt-2 grid grid-cols-2 gap-2">
+              {achievementsQuery.data?.badges.map((badge) => (
+                <li
+                  key={badge.id}
+                  className={cx(
+                    'rounded-xl px-4 py-2 text-center text-sm',
+                    badge.earned ? 'bg-magic-100' : 'bg-adventure-50 opacity-60',
+                  )}
+                >
+                  <p className="font-display font-semibold text-adventure-800">{badge.name}</p>
+                  <p className="text-xs text-adventure-600">{badge.rarity}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </DashboardDialog>
       )}
     </div>
   )
