@@ -82,7 +82,7 @@ export class World1Scene extends Phaser.Scene {
     const groundZone = this.buildGround(height)
     const platforms = this.buildPlatforms()
 
-    this.player = this.physics.add.sprite(120, this.groundY - 40, 'player')
+    this.player = this.physics.add.sprite(200, this.groundY - 40, 'player')
     this.player.setSize(24, 30).setOffset(4, 8)
     this.player.setCollideWorldBounds(true)
     this.player.setDragX(900)
