@@ -39,11 +39,11 @@ MathAdv/
 
 | Module | Status |
 | --- | --- |
-| Auth (register/login/logout, roles) | Done |
+| Auth (register/login/logout, roles, username-only - no email) | Done |
 | DB schema (all 14 spec modules + pivots) | Done |
 | World 1 gameplay (Phaser + adaptive questions + XP) | Done |
 | Student dashboard (XP/level/activity) | Done |
-| Leaderboard, Achievements/Badges, Daily Reward | Done (real data, simple UI) |
+| Leaderboard, Achievements/Badges | Done (real data, simple UI) |
 | Teacher dashboard, class management, admin panel | Scaffolded only (placeholder UI) |
 | Worlds 2-4 (Multiplication/Division/Fractions) | Schema ready, no seeded levels/scenes yet |
 | Matching / Drag-and-drop question types | Schema ready, no playable UI yet |
@@ -63,7 +63,7 @@ supabase start      # spins up Postgres, Auth (GoTrue), PostgREST, Studio, etc. 
 
 `supabase start` automatically applies every migration in `supabase/migrations/` and then
 `supabase/seed.sql`, which seeds roles, question categories, World 1 game levels + questions, badges,
-a daily reward, and an admin user (`admin@mathadventura.test` / `password`). It prints the local API
+and an admin user (username `MathAdventura Admin` / password `password`). It prints the local API
 URL and anon key on startup - use those for the frontend's `.env` below. Studio is at
 http://localhost:54323 if you want to browse the data.
 

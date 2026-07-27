@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAchievements } from '@/features/achievements/api'
 import { logoutRequest } from '@/features/auth/api'
 import { fetchDashboardSummary } from '@/features/dashboard/api'
 import { fetchLeaderboard } from '@/features/leaderboard/api'
-import { claimDailyReward, fetchDailyReward } from '@/features/rewards/api'
 import { useAuthStore } from '@/shared/stores/authStore'
 import { usePlayerStore } from '@/shared/stores/playerStore'
-import { Button } from '@/shared/ui/Button'
 import { cx } from '@/shared/ui/cx'
 
 const ACTIVITY_ICON: Record<string, string> = {
@@ -94,7 +92,6 @@ function DashboardDialog({
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const xp = usePlayerStore((state) => state.xp)
@@ -102,7 +99,7 @@ export function DashboardPage() {
   const setPlayerStats = usePlayerStore((state) => state.setPlayerStats)
   const [showActivity, setShowActivity] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [showRewards, setShowRewards] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
 
   const summaryQuery = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary })
@@ -110,11 +107,6 @@ export function DashboardPage() {
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboard,
     enabled: showLeaderboard,
-  })
-  const rewardQuery = useQuery({
-    queryKey: ['daily-reward'],
-    queryFn: fetchDailyReward,
-    enabled: showRewards,
   })
   const achievementsQuery = useQuery({
     queryKey: ['achievements'],
@@ -131,14 +123,6 @@ export function DashboardPage() {
     onSettled: () => {
       logout()
       navigate('/login')
-    },
-  })
-
-  const claimMutation = useMutation({
-    mutationFn: claimDailyReward,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['daily-reward'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
     },
   })
 
@@ -203,7 +187,7 @@ export function DashboardPage() {
         </div>
 
         <div className="absolute bottom-4 right-4 z-10 flex gap-2.5 sm:bottom-6 sm:right-6 sm:gap-4">
-          <HudButton icon="🎁" label="Daily Reward" onClick={() => setShowRewards(true)} />
+          <HudButton icon="ℹ️" label="About" onClick={() => setShowAbout(true)} />
           <HudButton icon="📜" label="Recent Activity" onClick={() => setShowActivity(true)} />
           <HudButton icon="🎖️" label="Achievement" onClick={() => setShowAchievements(true)} />
         </div>
@@ -258,28 +242,13 @@ export function DashboardPage() {
         </DashboardDialog>
       )}
 
-      {showRewards && (
-        <DashboardDialog title="Daily Reward" onClose={() => setShowRewards(false)}>
+      {showAbout && (
+        <DashboardDialog title="About" onClose={() => setShowAbout(false)}>
           <div className="mt-3 text-center">
-            {rewardQuery.isLoading && <p className="text-sm text-adventure-600">Loading...</p>}
-            {rewardQuery.data && !rewardQuery.data.reward && (
-              <p className="text-sm text-adventure-600">
-                {rewardQuery.data.message ?? 'No daily reward is configured yet.'}
-              </p>
-            )}
-            {rewardQuery.data?.reward && (
-              <>
-                <p className="font-display text-lg font-bold text-adventure-800">{rewardQuery.data.reward.name}</p>
-                <p className="mt-1 text-adventure-600">+{rewardQuery.data.reward.xp_value} XP</p>
-                <Button
-                  className="mt-4"
-                  disabled={rewardQuery.data.claimed_today || claimMutation.isPending}
-                  onClick={() => claimMutation.mutate()}
-                >
-                  {rewardQuery.data.claimed_today ? 'Already Claimed Today' : 'Claim Reward'}
-                </Button>
-              </>
-            )}
+            <h3 className="font-display text-2xl font-extrabold text-adventure-700">MathAdventura</h3>
+            <p className="mt-3 text-adventure-800">
+              Explore a fantasy world, battle tricky math challenges, and level up your skills!
+            </p>
           </div>
         </DashboardDialog>
       )}
