@@ -3,6 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { fetchAchievements } from '@/features/achievements/api'
 import { logoutRequest } from '@/features/auth/api'
+import { LoginForm } from '@/features/auth/components/LoginForm'
+import { RegisterForm } from '@/features/auth/components/RegisterForm'
 import { fetchDashboardSummary } from '@/features/dashboard/api'
 import { fetchLeaderboard } from '@/features/leaderboard/api'
 import { useAuthStore } from '@/shared/stores/authStore'
@@ -16,8 +18,9 @@ const ACTIVITY_ICON: Record<string, string> = {
 
 const MENU_ITEMS = [
   { key: 'play', label: 'Play', to: '/play' },
-  { key: 'leaderboard', label: 'Leaderboard', to: null },
-  { key: 'quit', label: 'Quit', to: null },
+  { key: 'activity', label: 'Recent Activity', to: null },
+  { key: 'achievement', label: 'Achievement', to: null },
+  { key: 'quit', label: 'Log Out', to: null },
 ] as const
 
 function MenuButton({
@@ -33,23 +36,9 @@ function MenuButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="font-display w-40 rounded-xl border-4 border-[#6d2440] bg-gold-300 py-2.5 text-lg font-extrabold tracking-widest text-adventure-900 shadow-[4px_4px_0_0_#6d2440] transition-all hover:brightness-105 active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-60 disabled:pointer-events-none sm:w-48 sm:py-3 sm:text-xl"
+      className="font-display w-40 rounded-xl border-4 border-[#6d2440] bg-gold-300 px-2 py-2.5 text-sm font-extrabold tracking-wide text-adventure-900 shadow-[4px_4px_0_0_#6d2440] transition-all hover:brightness-105 active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-60 disabled:pointer-events-none sm:w-48 sm:py-3 sm:text-lg"
     >
       {children}
-    </button>
-  )
-}
-
-function HudButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-0.5 rounded-xl border-4 border-[#6d2440] bg-gold-300 px-2.5 py-2 shadow-[3px_3px_0_0_#6d2440] transition-all hover:brightness-105 active:translate-x-1 active:translate-y-1 active:shadow-none sm:px-3.5 sm:py-2.5"
-    >
-      <span className="text-xl sm:text-2xl">{icon}</span>
-      <span className="font-display text-center text-[9px] font-extrabold leading-tight text-adventure-900 sm:text-[10px]">
-        {label}
-      </span>
     </button>
   )
 }
@@ -93,25 +82,31 @@ function DashboardDialog({
 export function DashboardPage() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
+  const setUser = useAuthStore((state) => state.setUser)
   const logout = useAuthStore((state) => state.logout)
   const xp = usePlayerStore((state) => state.xp)
   const level = usePlayerStore((state) => state.level)
   const setPlayerStats = usePlayerStore((state) => state.setPlayerStats)
   const [showActivity, setShowActivity] = useState(false)
-  const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [showAbout, setShowAbout] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const isGuest = !user
 
-  const summaryQuery = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary })
+  const summaryQuery = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: fetchDashboardSummary,
+    enabled: !isGuest,
+  })
   const leaderboardQuery = useQuery({
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboard,
-    enabled: showLeaderboard,
+    enabled: !isGuest,
   })
   const achievementsQuery = useQuery({
     queryKey: ['achievements'],
     queryFn: fetchAchievements,
-    enabled: showAchievements,
+    enabled: !isGuest && showAchievements,
   })
 
   useEffect(() => {
@@ -132,9 +127,18 @@ export function DashboardPage() {
   const displayLevel = summaryQuery.data ? level : (user?.student?.level ?? 1)
   const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase()
 
+  const visibleMenuItems = isGuest ? MENU_ITEMS.filter((item) => item.key !== 'quit') : MENU_ITEMS
+
+  const openLoginPrompt = () => {
+    setAuthMode('login')
+    setShowLoginPrompt(true)
+  }
+
   const handleMenuClick = (item: (typeof MENU_ITEMS)[number]) => {
+    if (isGuest) return openLoginPrompt()
     if (item.key === 'quit') return logoutMutation.mutate()
-    if (item.key === 'leaderboard') return setShowLeaderboard(true)
+    if (item.key === 'activity') return setShowActivity(true)
+    if (item.key === 'achievement') return setShowAchievements(true)
     if (item.to) navigate(item.to)
   }
 
@@ -142,7 +146,8 @@ export function DashboardPage() {
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-[#16302a]">
       <div className="relative z-20 shrink-0 border-b-4 border-black/20 bg-gradient-to-r from-[#3f1524] via-[#6d2440] to-[#3f1524] px-4 py-2 text-center shadow-md">
         <p className="font-display text-xs font-bold tracking-wide text-gold-200 drop-shadow sm:text-base">
-          Welcome, <span className="text-white">{user?.name}</span>! Let's Embark on the Maths Journey Together!
+          Welcome, <span className="text-white">{user?.name ?? 'Adventurer'}</span>! Let's Embark on the Maths
+          Journey Together!
         </p>
       </div>
 
@@ -174,8 +179,44 @@ export function DashboardPage() {
           </span>
         </div>
 
+        <div className="absolute bottom-5 right-3 top-16 z-10 hidden w-72 flex-col overflow-hidden rounded-2xl border-2 border-adventure-900 bg-white/90 shadow sm:right-5 sm:top-20 sm:flex sm:w-80">
+          <div className="shrink-0 border-b-2 border-adventure-900/10 px-3 py-2">
+            <h3 className="font-display text-xs font-bold uppercase tracking-wide text-adventure-500">
+              Leaderboard
+            </h3>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+            {isGuest ? (
+              <p className="text-sm text-adventure-500">Log in to see the leaderboard!</p>
+            ) : (
+              <>
+                {leaderboardQuery.isLoading && <p className="text-sm text-adventure-500">Loading...</p>}
+                {leaderboardQuery.data?.length === 0 && (
+                  <p className="text-sm text-adventure-500">No adventurers yet!</p>
+                )}
+                <ol className="space-y-1.5">
+                  {leaderboardQuery.data?.map((entry) => (
+                    <li
+                      key={entry.student_id}
+                      className="flex items-center justify-between rounded-lg bg-adventure-50 px-3 py-1.5 text-sm"
+                    >
+                      <span className="font-display truncate font-semibold text-adventure-800">
+                        #{entry.rank} {entry.name}
+                      </span>
+                      <span className="shrink-0 pl-2 text-adventure-600">
+                        {entry.xp} XP · Lv {entry.level}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
+        </div>
+
         <div className="absolute left-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-4 sm:left-10 sm:gap-6">
-          {MENU_ITEMS.map((item) => (
+          {visibleMenuItems.map((item) => (
             <MenuButton
               key={item.key}
               onClick={() => handleMenuClick(item)}
@@ -185,13 +226,54 @@ export function DashboardPage() {
             </MenuButton>
           ))}
         </div>
-
-        <div className="absolute bottom-4 right-4 z-10 flex gap-2.5 sm:bottom-6 sm:right-6 sm:gap-4">
-          <HudButton icon="ℹ️" label="About" onClick={() => setShowAbout(true)} />
-          <HudButton icon="📜" label="Recent Activity" onClick={() => setShowActivity(true)} />
-          <HudButton icon="🎖️" label="Achievement" onClick={() => setShowAchievements(true)} />
-        </div>
       </div>
+
+      {showLoginPrompt && (
+        <DashboardDialog
+          title={authMode === 'login' ? 'Log In' : 'Create Account'}
+          onClose={() => setShowLoginPrompt(false)}
+        >
+          {authMode === 'login' ? (
+            <LoginForm
+              onSuccess={(loggedInUser) => {
+                setUser(loggedInUser)
+                setShowLoginPrompt(false)
+              }}
+              footer={
+                <p className="text-center text-sm text-adventure-700">
+                  New here?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('register')}
+                    className="font-semibold text-adventure-600 underline"
+                  >
+                    Create an account
+                  </button>
+                </p>
+              }
+            />
+          ) : (
+            <RegisterForm
+              onSuccess={(registeredUser) => {
+                setUser(registeredUser)
+                setShowLoginPrompt(false)
+              }}
+              footer={
+                <p className="text-center text-sm text-adventure-700">
+                  Already adventuring?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                    className="font-semibold text-adventure-600 underline"
+                  >
+                    Log in
+                  </button>
+                </p>
+              }
+            />
+          )}
+        </DashboardDialog>
+      )}
 
       {showActivity && (
         <DashboardDialog title="Recent Activity" onClose={() => setShowActivity(false)}>
@@ -215,41 +297,6 @@ export function DashboardPage() {
               </li>
             ))}
           </ul>
-        </DashboardDialog>
-      )}
-
-      {showLeaderboard && (
-        <DashboardDialog title="Global Leaderboard" onClose={() => setShowLeaderboard(false)} widthClass="max-w-md">
-          {leaderboardQuery.isLoading && <p className="mt-2 text-sm text-adventure-600">Loading...</p>}
-          {leaderboardQuery.data?.length === 0 && (
-            <p className="mt-2 text-sm text-adventure-600">No adventurers yet!</p>
-          )}
-          <ol className="mt-3 space-y-2">
-            {leaderboardQuery.data?.map((entry) => (
-              <li
-                key={entry.student_id}
-                className="flex items-center justify-between rounded-xl bg-adventure-50 px-4 py-2 text-sm"
-              >
-                <span className="font-display font-semibold text-adventure-800">
-                  #{entry.rank} {entry.name}
-                </span>
-                <span className="text-adventure-600">
-                  {entry.xp} XP · Lv {entry.level}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </DashboardDialog>
-      )}
-
-      {showAbout && (
-        <DashboardDialog title="About" onClose={() => setShowAbout(false)}>
-          <div className="mt-3 text-center">
-            <h3 className="font-display text-2xl font-extrabold text-adventure-700">MathAdventura</h3>
-            <p className="mt-3 text-adventure-800">
-              Explore a fantasy world, battle tricky math challenges, and level up your skills!
-            </p>
-          </div>
         </DashboardDialog>
       )}
 

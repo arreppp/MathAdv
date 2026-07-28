@@ -6,21 +6,13 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { GamePage } from '@/features/game/pages/GamePage'
-import { LandingPage } from '@/features/landing/pages/LandingPage'
 import { ClassesPage } from '@/features/teacher/pages/ClassesPage'
 import { TeacherDashboardPage } from '@/features/teacher/pages/TeacherDashboardPage'
 
 export function AppRouter() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <GuestRoute>
-            <LandingPage />
-          </GuestRoute>
-        }
-      />
+      <Route path="/" element={<DashboardPage />} />
       <Route
         path="/login"
         element={
@@ -37,14 +29,7 @@ export function AppRouter() {
           </GuestRoute>
         }
       />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={<DashboardPage />} />
       <Route
         path="/play"
         element={
