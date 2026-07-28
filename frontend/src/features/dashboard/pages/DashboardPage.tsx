@@ -16,8 +16,7 @@ const ACTIVITY_ICON: Record<string, string> = {
 
 const MENU_ITEMS = [
   { key: 'play', label: 'Play', to: '/play' },
-  { key: 'leaderboard', label: 'Leaderboard', to: null },
-  { key: 'quit', label: 'Quit', to: null },
+  { key: 'quit', label: 'Log Out', to: null },
 ] as const
 
 function MenuButton({
@@ -98,7 +97,6 @@ export function DashboardPage() {
   const level = usePlayerStore((state) => state.level)
   const setPlayerStats = usePlayerStore((state) => state.setPlayerStats)
   const [showActivity, setShowActivity] = useState(false)
-  const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
@@ -112,7 +110,7 @@ export function DashboardPage() {
   const leaderboardQuery = useQuery({
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboard,
-    enabled: !isGuest && showLeaderboard,
+    enabled: !isGuest,
   })
   const achievementsQuery = useQuery({
     queryKey: ['achievements'],
@@ -143,7 +141,6 @@ export function DashboardPage() {
   const handleMenuClick = (item: (typeof MENU_ITEMS)[number]) => {
     if (isGuest) return setShowLoginPrompt(true)
     if (item.key === 'quit') return logoutMutation.mutate()
-    if (item.key === 'leaderboard') return setShowLeaderboard(true)
     if (item.to) navigate(item.to)
   }
 
@@ -180,13 +177,50 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="absolute right-3 top-3 z-10 hidden items-center gap-2 rounded-full border-2 border-adventure-900 bg-white/85 py-1 pl-1 pr-3 shadow sm:right-5 sm:top-5 sm:flex">
-          <span className="font-display flex h-8 w-8 items-center justify-center rounded-full border-2 border-gold-400 bg-adventure-800 text-sm font-extrabold text-white sm:h-9 sm:w-9">
-            {initial}
-          </span>
-          <span className="font-display text-xs font-extrabold text-adventure-800 sm:text-sm">
-            Lv {displayLevel} · {displayXp} XP
-          </span>
+        <div className="absolute bottom-5 right-3 top-3 z-10 hidden w-52 flex-col overflow-hidden rounded-2xl border-2 border-adventure-900 bg-white/90 shadow sm:right-5 sm:top-5 sm:flex">
+          <div className="flex shrink-0 items-center gap-2 border-b-2 border-adventure-900/10 px-3 py-2.5">
+            <span className="font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-gold-400 bg-adventure-800 text-sm font-extrabold text-white sm:h-9 sm:w-9">
+              {initial}
+            </span>
+            <span className="font-display text-xs font-extrabold leading-tight text-adventure-800 sm:text-sm">
+              {user?.name ?? 'Adventurer'}
+              <br />
+              Lv {displayLevel} · {displayXp} XP
+            </span>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
+            <h3 className="font-display px-0.5 text-[10px] font-bold uppercase tracking-wide text-adventure-500">
+              Leaderboard
+            </h3>
+            {isGuest ? (
+              <p className="mt-2 px-0.5 text-[11px] text-adventure-500">Log in to see the leaderboard!</p>
+            ) : (
+              <>
+                {leaderboardQuery.isLoading && (
+                  <p className="mt-2 px-0.5 text-[11px] text-adventure-500">Loading...</p>
+                )}
+                {leaderboardQuery.data?.length === 0 && (
+                  <p className="mt-2 px-0.5 text-[11px] text-adventure-500">No adventurers yet!</p>
+                )}
+                <ol className="mt-1.5 space-y-1">
+                  {leaderboardQuery.data?.map((entry) => (
+                    <li
+                      key={entry.student_id}
+                      className="flex items-center justify-between rounded-lg bg-adventure-50 px-2 py-1 text-[11px]"
+                    >
+                      <span className="font-display truncate font-semibold text-adventure-800">
+                        #{entry.rank} {entry.name}
+                      </span>
+                      <span className="shrink-0 pl-1 text-adventure-600">
+                        {entry.xp} XP · Lv {entry.level}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="absolute left-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-4 sm:left-10 sm:gap-6">
@@ -260,30 +294,6 @@ export function DashboardPage() {
               </li>
             ))}
           </ul>
-        </DashboardDialog>
-      )}
-
-      {showLeaderboard && (
-        <DashboardDialog title="Global Leaderboard" onClose={() => setShowLeaderboard(false)} widthClass="max-w-md">
-          {leaderboardQuery.isLoading && <p className="mt-2 text-sm text-adventure-600">Loading...</p>}
-          {leaderboardQuery.data?.length === 0 && (
-            <p className="mt-2 text-sm text-adventure-600">No adventurers yet!</p>
-          )}
-          <ol className="mt-3 space-y-2">
-            {leaderboardQuery.data?.map((entry) => (
-              <li
-                key={entry.student_id}
-                className="flex items-center justify-between rounded-xl bg-adventure-50 px-4 py-2 text-sm"
-              >
-                <span className="font-display font-semibold text-adventure-800">
-                  #{entry.rank} {entry.name}
-                </span>
-                <span className="text-adventure-600">
-                  {entry.xp} XP · Lv {entry.level}
-                </span>
-              </li>
-            ))}
-          </ol>
         </DashboardDialog>
       )}
 
