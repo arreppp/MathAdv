@@ -43,20 +43,6 @@ function MenuButton({
   )
 }
 
-function HudButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-0.5 rounded-xl border-4 border-[#6d2440] bg-gold-300 px-2.5 py-2 shadow-[3px_3px_0_0_#6d2440] transition-all hover:brightness-105 active:translate-x-1 active:translate-y-1 active:shadow-none sm:px-3.5 sm:py-2.5"
-    >
-      <span className="text-xl sm:text-2xl">{icon}</span>
-      <span className="font-display text-center text-[9px] font-extrabold leading-tight text-adventure-900 sm:text-[10px]">
-        {label}
-      </span>
-    </button>
-  )
-}
-
 function DashboardDialog({
   title,
   onClose,
@@ -102,7 +88,6 @@ export function DashboardPage() {
   const level = usePlayerStore((state) => state.level)
   const setPlayerStats = usePlayerStore((state) => state.setPlayerStats)
   const [showActivity, setShowActivity] = useState(false)
-  const [showAbout, setShowAbout] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
@@ -241,10 +226,6 @@ export function DashboardPage() {
             </MenuButton>
           ))}
         </div>
-
-        <div className="absolute bottom-4 right-4 z-10 flex gap-2.5 sm:bottom-6 sm:right-6 sm:gap-4">
-          <HudButton icon="ℹ️" label="About" onClick={() => setShowAbout(true)} />
-        </div>
       </div>
 
       {showLoginPrompt && (
@@ -316,17 +297,6 @@ export function DashboardPage() {
               </li>
             ))}
           </ul>
-        </DashboardDialog>
-      )}
-
-      {showAbout && (
-        <DashboardDialog title="About" onClose={() => setShowAbout(false)}>
-          <div className="mt-3 text-center">
-            <h3 className="font-display text-2xl font-extrabold text-adventure-700">MathAdventura</h3>
-            <p className="mt-3 text-adventure-800">
-              Explore a fantasy world, battle tricky math challenges, and level up your skills!
-            </p>
-          </div>
         </DashboardDialog>
       )}
 
