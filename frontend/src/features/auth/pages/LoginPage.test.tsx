@@ -26,7 +26,7 @@ describe('LoginPage', () => {
   it('renders the login form', () => {
     renderWithProviders(<LoginPage />)
 
-    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Username')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument()
   })
@@ -37,12 +37,12 @@ describe('LoginPage', () => {
 
     renderWithProviders(<LoginPage />)
 
-    await user.type(screen.getByLabelText('Email'), 'test@example.com')
+    await user.type(screen.getByLabelText('Username'), 'teststudent')
     await user.type(screen.getByLabelText('Password'), 'password123')
     await user.click(screen.getByRole('button', { name: /log in/i }))
 
     expect(loginRequest).toHaveBeenCalledWith(
-      { email: 'test@example.com', password: 'password123' },
+      { name: 'teststudent', password: 'password123' },
       expect.anything(),
     )
   })

@@ -10,7 +10,7 @@ import { Card } from '@/shared/ui/Card'
 export function LoginPage() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
 
   const mutation = useMutation({
@@ -23,7 +23,7 @@ export function LoginPage() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    mutation.mutate({ email, password })
+    mutation.mutate({ name, password })
   }
 
   const errorMessage = extractApiErrorMessage(mutation.error)
@@ -34,15 +34,15 @@ export function LoginPage() {
         <h1 className="font-display text-center text-2xl font-extrabold text-adventure-700">Welcome Back</h1>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-semibold text-adventure-800">
-              Email
+            <label htmlFor="name" className="mb-1 block text-sm font-semibold text-adventure-800">
+              Username
             </label>
             <input
-              id="email"
-              type="email"
+              id="name"
+              type="text"
               required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
               className="w-full rounded-xl border-2 border-adventure-200 px-3 py-2 focus:border-adventure-500 focus:outline-none"
             />
           </div>

@@ -30,16 +30,6 @@ insert into public.badges (name, slug, description, icon, rarity) values
   ('World 1 Champion', 'world-1-champion', 'Complete every level in Basic Arithmetic.', 'trophy', 'legendary')
 on conflict (slug) do nothing;
 
--- Daily reward. NOTE: this reward row doesn't exist on the Laravel side
--- (no RewardSeeder was ever written there, so RewardController's daily-claim
--- flow has always returned "not configured yet" in that stack). Since the
--- feature is fully implemented and just missing data, it's seeded here so
--- the Supabase version actually works end to end - flag if you'd rather
--- match the Laravel gap exactly.
-insert into public.rewards (name, description, type, icon, xp_value)
-select 'Daily Login Bonus', 'Log in and claim a small XP bonus once per day.', 'daily', 'gift', 15
-where not exists (select 1 from public.rewards where type = 'daily');
-
 -- World 1 game levels (GameLevelSeeder) -------------------------------------
 insert into public.game_levels (question_category_id, world, level_number, name, description, difficulty, xp_reward, unlock_xp_threshold)
 select qc.id, 1, lv.level_number, lv.name,
@@ -177,11 +167,19 @@ end $$;
 -- or production project create the admin via the Supabase Auth Admin API
 -- (supabase.auth.admin.createUser) instead, then call
 -- select public.provision_teacher(...) or update role_id directly.
+-- The frontend never collects a real email (see 20260727120100_unique_username.sql)
+-- - it signs in with a synthetic email derived from the username. This seed
+-- has to derive the admin's email the exact same way (lowercase, non
+-- alphanumeric runs -> '-', trimmed, @users.mathadventura.app) or the admin
+-- won't be able to log in through the normal Username field.
 do $$
 declare
   v_admin_id uuid;
+  v_admin_name text := 'MathAdventura Admin';
+  v_admin_email text := regexp_replace(regexp_replace(lower(v_admin_name), '[^a-z0-9]+', '-', 'g'), '^-+|-+$', '', 'g')
+    || '@users.mathadventura.app';
 begin
-  if not exists (select 1 from auth.users where email = 'admin@mathadventura.test') then
+  if not exists (select 1 from auth.users where email = v_admin_email) then
     v_admin_id := gen_random_uuid();
 
     insert into auth.users (
@@ -190,15 +188,15 @@ begin
       confirmation_token, email_change, email_change_token_new, recovery_token
     ) values (
       '00000000-0000-0000-0000-000000000000', v_admin_id, 'authenticated', 'authenticated',
-      'admin@mathadventura.test', crypt('password', gen_salt('bf')), now(),
-      '{"provider":"email","providers":["email"]}', jsonb_build_object('name', 'MathAdventura Admin'),
+      v_admin_email, crypt('password', gen_salt('bf')), now(),
+      '{"provider":"email","providers":["email"]}', jsonb_build_object('name', v_admin_name),
       now(), now(), '', '', '', ''
     );
 
     insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
     values (
       gen_random_uuid(), v_admin_id, v_admin_id::text,
-      jsonb_build_object('sub', v_admin_id::text, 'email', 'admin@mathadventura.test'),
+      jsonb_build_object('sub', v_admin_id::text, 'email', v_admin_email),
       'email', now(), now(), now()
     );
 

@@ -11,7 +11,6 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
 
@@ -25,7 +24,7 @@ export function RegisterPage() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    mutation.mutate({ name, email, password, password_confirmation: passwordConfirmation })
+    mutation.mutate({ name, password, password_confirmation: passwordConfirmation })
   }
 
   const errorMessage = extractApiErrorMessage(mutation.error)
@@ -37,27 +36,18 @@ export function RegisterPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label htmlFor="name" className="mb-1 block text-sm font-semibold text-adventure-800">
-              Name
+              Username
             </label>
             <input
               id="name"
               type="text"
               required
+              minLength={3}
+              maxLength={30}
+              pattern="[A-Za-z0-9_ ]+"
+              title="Letters, numbers, spaces, and underscores only."
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="w-full rounded-xl border-2 border-adventure-200 px-3 py-2 focus:border-adventure-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-semibold text-adventure-800">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
               className="w-full rounded-xl border-2 border-adventure-200 px-3 py-2 focus:border-adventure-500 focus:outline-none"
             />
           </div>

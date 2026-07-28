@@ -1,6 +1,21 @@
 import { supabase } from '@/shared/api/supabaseClient'
 import type { User } from '@/shared/types'
 
+/**
+ * Supabase Auth always needs an email under the hood, but players only ever
+ * see/enter a username. This derives a stable, unique-per-username synthetic
+ * email so the frontend never has to collect a real one.
+ */
+function usernameToEmail(username: string): string {
+  const slug = username
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return `${slug}@users.mathadventura.app`
+}
+
 export async function fetchMe(): Promise<User> {
   const { data, error } = await supabase.rpc('me')
   if (error) throw error
@@ -14,7 +29,6 @@ export async function fetchMe(): Promise<User> {
  */
 export async function registerRequest(payload: {
   name: string
-  email: string
   password: string
   password_confirmation: string
 }): Promise<User> {
@@ -23,7 +37,7 @@ export async function registerRequest(payload: {
   }
 
   const { error } = await supabase.auth.signUp({
-    email: payload.email,
+    email: usernameToEmail(payload.name),
     password: payload.password,
     options: { data: { name: payload.name } },
   })
@@ -32,8 +46,11 @@ export async function registerRequest(payload: {
   return fetchMe()
 }
 
-export async function loginRequest(payload: { email: string; password: string }): Promise<User> {
-  const { error } = await supabase.auth.signInWithPassword(payload)
+export async function loginRequest(payload: { name: string; password: string }): Promise<User> {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: usernameToEmail(payload.name),
+    password: payload.password,
+  })
   if (error) throw error
 
   return fetchMe()
