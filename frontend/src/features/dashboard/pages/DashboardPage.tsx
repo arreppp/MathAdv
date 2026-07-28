@@ -101,17 +101,23 @@ export function DashboardPage() {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const isGuest = !user
 
-  const summaryQuery = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary })
+  const summaryQuery = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: fetchDashboardSummary,
+    enabled: !isGuest,
+  })
   const leaderboardQuery = useQuery({
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboard,
-    enabled: showLeaderboard,
+    enabled: !isGuest && showLeaderboard,
   })
   const achievementsQuery = useQuery({
     queryKey: ['achievements'],
     queryFn: fetchAchievements,
-    enabled: showAchievements,
+    enabled: !isGuest && showAchievements,
   })
 
   useEffect(() => {
@@ -132,17 +138,26 @@ export function DashboardPage() {
   const displayLevel = summaryQuery.data ? level : (user?.student?.level ?? 1)
   const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase()
 
+  const visibleMenuItems = isGuest ? MENU_ITEMS.filter((item) => item.key !== 'quit') : MENU_ITEMS
+
   const handleMenuClick = (item: (typeof MENU_ITEMS)[number]) => {
+    if (isGuest) return setShowLoginPrompt(true)
     if (item.key === 'quit') return logoutMutation.mutate()
     if (item.key === 'leaderboard') return setShowLeaderboard(true)
     if (item.to) navigate(item.to)
+  }
+
+  const handleHudClick = (open: () => void) => {
+    if (isGuest) return setShowLoginPrompt(true)
+    open()
   }
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-[#16302a]">
       <div className="relative z-20 shrink-0 border-b-4 border-black/20 bg-gradient-to-r from-[#3f1524] via-[#6d2440] to-[#3f1524] px-4 py-2 text-center shadow-md">
         <p className="font-display text-xs font-bold tracking-wide text-gold-200 drop-shadow sm:text-base">
-          Welcome, <span className="text-white">{user?.name}</span>! Let's Embark on the Maths Journey Together!
+          Welcome, <span className="text-white">{user?.name ?? 'Adventurer'}</span>! Let's Embark on the Maths
+          Journey Together!
         </p>
       </div>
 
@@ -175,7 +190,7 @@ export function DashboardPage() {
         </div>
 
         <div className="absolute left-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-4 sm:left-10 sm:gap-6">
-          {MENU_ITEMS.map((item) => (
+          {visibleMenuItems.map((item) => (
             <MenuButton
               key={item.key}
               onClick={() => handleMenuClick(item)}
@@ -187,11 +202,41 @@ export function DashboardPage() {
         </div>
 
         <div className="absolute bottom-4 right-4 z-10 flex gap-2.5 sm:bottom-6 sm:right-6 sm:gap-4">
-          <HudButton icon="ℹ️" label="About" onClick={() => setShowAbout(true)} />
-          <HudButton icon="📜" label="Recent Activity" onClick={() => setShowActivity(true)} />
-          <HudButton icon="🎖️" label="Achievement" onClick={() => setShowAchievements(true)} />
+          <HudButton icon="ℹ️" label="About" onClick={() => handleHudClick(() => setShowAbout(true))} />
+          <HudButton
+            icon="📜"
+            label="Recent Activity"
+            onClick={() => handleHudClick(() => setShowActivity(true))}
+          />
+          <HudButton
+            icon="🎖️"
+            label="Achievement"
+            onClick={() => handleHudClick(() => setShowAchievements(true))}
+          />
         </div>
       </div>
+
+      {showLoginPrompt && (
+        <DashboardDialog title="Login Required" onClose={() => setShowLoginPrompt(false)}>
+          <p className="mt-2 text-sm text-adventure-600">
+            Log in or create an account to start your quest and track your progress!
+          </p>
+          <div className="mt-4 flex justify-center gap-3">
+            <button
+              onClick={() => navigate('/login')}
+              className="font-display rounded-2xl bg-gold-400 px-5 py-2.5 text-sm font-semibold text-adventure-900 shadow-md shadow-gold-700/20 transition-transform hover:bg-gold-500 active:scale-95"
+            >
+              Log In
+            </button>
+            <button
+              onClick={() => navigate('/register')}
+              className="font-display rounded-2xl bg-adventure-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-adventure-900/20 transition-transform hover:bg-adventure-600 active:scale-95"
+            >
+              Create Account
+            </button>
+          </div>
+        </DashboardDialog>
+      )}
 
       {showActivity && (
         <DashboardDialog title="Recent Activity" onClose={() => setShowActivity(false)}>
